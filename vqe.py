@@ -1,7 +1,7 @@
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_algorithms.minimum_eigensolvers import VQE
-from qiskit_algorithms.optimizers import COBYLA, BFGS
+from qiskit_algorithms.optimizers import COBYLA, L_BFGS_B
 from qiskit.primitives import Estimator
 
 import numpy as np
@@ -38,7 +38,7 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
             tol = params.tol
         )
     elif params.optimizer == 'BFGS':
-        optimizer_obj = BFGS(
+        optimizer_obj = L_BFGS_B(
             maxiter = 1000,
             tol = params.tol
         )

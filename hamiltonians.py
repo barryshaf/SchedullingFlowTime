@@ -30,7 +30,7 @@ def gen_trans_ising_op(num_qubits: int,
 
 def get_exact_ground(op: SparsePauliOp) -> np.float64:
     eig_res = eig(op.to_matrix())
-    return min(eig_res.eigenvalues)
+    return min(eig_res.eigenvalues).real
 
 
 def get_expectation_value(state: Statevector, op: SparsePauliOp) -> np.float64:
