@@ -45,12 +45,14 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
     else:
         raise Exception('Optimizer not supported in this experiment!~')
     ansatz_with_prepened_mub = initial_state.compose(ansatz, range(ansatz.num_qubits), inplace=False)
+
     # enforcing the success bound
     class BoundHitException(Exception):
         def __init__(self, n_evals, final_cost):
             self.n_evals = n_evals
             self.final_cost = final_cost
-    def callback(eval_count: int, theta: np.ndarray, cost: float, metadata: dict) -> None:
+
+    def callback_fun(eval_count: int, theta: np.ndarray, cost: float, metadata: dict) -> None:
         if params.exact_result is None:
             return
         if (eval_count % params.report_period == 0):
@@ -58,9 +60,11 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
             if (params.report_thetas):
                 print(f"thetas: {theta}")
         if (cost < params.exact_result + params.success_bound):
+            print("WOLOLO!")
             raise BoundHitException(eval_count, cost)
+        
     try:
-        vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz_with_prepened_mub, optimizer=optimizer_obj, callback=callback, initial_point = [0.0]*ansatz.num_parameters)
+        vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz_with_prepened_mub, optimizer=optimizer_obj, callback=callback_fun, initial_point = [0.0]*ansatz.num_parameters)
         res = vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
         return res.cost_function_evals, res.optimal_value, False
     except BoundHitException as e:

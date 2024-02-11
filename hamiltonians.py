@@ -2,7 +2,9 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.states import Statevector
 
 import numpy as np
-from numpy.linalg import eig, norm
+from numpy.linalg import eig
+
+from mxacut import gen_graph, create_quadratic_program
 
 
 
@@ -26,6 +28,14 @@ def gen_trans_ising_op(num_qubits: int,
         terms.append(''.join(curr_term))
         coeffs.append(x_coeff)
     return SparsePauliOp(terms, coeffs)
+
+
+
+def gen_maxcut_op(n_nodes: int,  edges: list[tuple[int, int]]) -> SparsePauliOp:
+    g = gen_graph(n_nodes, edges)
+    qp = create_quadratic_program(g)
+    op, offset = qp.to_ising()
+    return op + SparsePauliOp(['I'*n_nodes], [offset])
 
 
 def get_exact_ground(op: SparsePauliOp) -> np.float64:

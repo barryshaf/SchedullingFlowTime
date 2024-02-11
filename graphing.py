@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 from landscape import LandscapeResultsType, flatten_energies
 
@@ -54,7 +55,9 @@ def display_energy_histogram(energy_landscape_results: LandscapeResultsType, exa
 
 
 
-def draw_graph(G: nx.Graph, colors: list[str], pos: dict):
+def draw_graph(G: nx.Graph):
+    colors = ["r" for _ in G.nodes()]
+    pos = nx.spring_layout(G)
     default_axes = plt.axes(frameon=True)
     nx.draw_networkx(G, node_color=colors, node_size=600, alpha=0.8, ax=default_axes, pos=pos)
     edge_labels = nx.get_edge_attributes(G, "weight")
