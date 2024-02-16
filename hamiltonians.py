@@ -3,6 +3,7 @@ from qiskit.quantum_info.states import Statevector
 
 import numpy as np
 from numpy.linalg import eig
+import networkx as nx
 
 from mxacut import gen_graph, create_quadratic_program
 
@@ -37,6 +38,10 @@ def gen_maxcut_op(n_nodes: int,  edges: list[tuple[int, int]]) -> SparsePauliOp:
     op, offset = qp.to_ising()
     return op + SparsePauliOp(['I'*n_nodes], [offset])
 
+def gen_maxcut_op_from_graph(g: nx.Graph) -> SparsePauliOp:
+    qp = create_quadratic_program(g)
+    op, offset = qp.to_ising()
+    return op + SparsePauliOp(['I'*g.number_of_nodes()], [offset])
 
 def get_exact_ground(op: SparsePauliOp) -> np.float64:
     eig_res = eig(op.to_matrix())
