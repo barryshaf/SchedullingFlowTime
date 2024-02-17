@@ -14,7 +14,7 @@ def display_energy_landscape(energy_landscape_results: LandscapeResultsType, exa
     mub_results_size = basis_size * len(energy_landscape_results[0])
     for i, mub_res in enumerate(energy_landscape_results):
         for j, subset_res in enumerate(mub_res):
-            energies_only = [energy for circuit, energy in subset_res]
+            energies_only = [energy for _, _, energy in subset_res]
             plt.plot(list(range(idx_counter, idx_counter+basis_size)), energies_only, 'o', lw=0.4, label=f"MUB {i}, subset {j}")
             idx_counter += basis_size
         # Show separation between different MUBs

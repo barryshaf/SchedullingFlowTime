@@ -19,7 +19,11 @@ NUM_MUBS_2_QUBITS = 5
 NUM_STATES_3_QUITS = 8
 NUM_MUBS_3_QUBTIS = 9
 
-ResultTuple = tuple[QuantumCircuit, np.float64]
+# A landscape sampling result contains the three following fields:
+# (subset_idx, mub_idx, state_idx): the triple index identifying the specific state.
+# A circuit generating that specific state.
+# The value of that point in the landscape.
+ResultTuple = tuple[tuple, QuantumCircuit, np.float64]
 LandscapeResultsType = list[list[list[ResultTuple]]]
 
 
@@ -39,7 +43,7 @@ def calculate_energy_landscape(op: SparsePauliOp, n_mub_qubits: int, subset_list
     total_res = []
     for mub_idx in range(num_mubs):
         mub_res = []
-        for subset in subset_list:
+        for subset_idx, subset in enumerate(subset_list):
             subset_res = []
             for state_idx in range(num_states):
                 circuit = generate_mub_state_circ(state_idx, mub_idx, op.num_qubits, subset, plus_for_non_mub)
@@ -49,7 +53,7 @@ def calculate_energy_landscape(op: SparsePauliOp, n_mub_qubits: int, subset_list
                     final_circuit = circuit
                 state = Statevector.from_instruction(final_circuit)
                 res = get_expectation_value(state, op)
-                subset_res.append((circuit, res))
+                subset_res.append(((subset_idx, mub_idx, state_idx), circuit, res))
             mub_res.append(subset_res)
         total_res.append(mub_res)
     return total_res
@@ -67,13 +71,13 @@ def flatten_results(results: LandscapeResultsType) -> list[ResultTuple]:
 
 def flatten_energies(results: LandscapeResultsType) -> list[np.float64]:
     flat_res = flatten_results(results)
-    return [energy for circuit, energy in flat_res]
+    return [energy for _, _, energy in flat_res]
 
 
 
 def find_k_best_results(results: LandscapeResultsType, k: int) -> list[ResultTuple]:
     results = flatten_results(results)
-    return sorted(results, key=(lambda x: x[1]))[:k]
+    return sorted(results, key=(lambda x: x[2]))[:k]
 
 
 

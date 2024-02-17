@@ -10,6 +10,7 @@ class Parameters:
     def __init__(self, n_qubits: int, n_layers: int, optimizer: str,
                     tol: float, success_bound: float, max_iter: int,
                     report_period: int, report_thetas: bool,
+                    num_of_starting_points: int,
                     exact_result: float | None = None):
         self.n_qubits = n_qubits            # number of qubist in the operator
         self.n_layers = n_layers            # number of ansatz layers
@@ -20,11 +21,14 @@ class Parameters:
         self.report_period = report_period  # how many iterations before a callback print.
         self.report_thetas = report_thetas  # whether to show the paramneter vector at the callback print
         self.exact_result = exact_result    # the exact result that we compare ourselves to.
+        self.num_of_starting_points = num_of_starting_points  # What amount of the best initial points is tested
 
 
 
 def get_standard_params(n_qubits: int) -> Parameters:
-    return Parameters(n_qubits=n_qubits, n_layers=5, optimizer='COBYLA', tol=1e-6, success_bound=1e-3, max_iter=1000, report_period=20, report_thetas=False)
+    return Parameters(n_qubits=n_qubits, n_layers=5, optimizer='COBYLA', tol=1e-6,
+                        success_bound=1e-3, max_iter=1000, report_period=20, report_thetas=False,
+                        num_of_starting_points=5)
 
 
 
@@ -34,12 +38,12 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
     optimizer_obj = None
     if params.optimizer == 'COBYLA':
         optimizer_obj = COBYLA(
-            maxiter = 1000,
+            maxiter = params.max_iter,
             tol = params.tol
         )
     elif params.optimizer == 'BFGS':
         optimizer_obj = L_BFGS_B(
-            maxiter = 1000,
+            maxiter = params.max_iter,
             tol = params.tol
         )
     else:
@@ -60,7 +64,6 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
             if (params.report_thetas):
                 print(f"thetas: {theta}")
         if (cost < params.exact_result + params.success_bound):
-            print("WOLOLO!")
             raise BoundHitException(eval_count, cost)
         
     try:
