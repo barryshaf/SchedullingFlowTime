@@ -1,5 +1,3 @@
-Thoughts_on_graphing_method.md
-
 # Current graphing method
 The current method defines the x axis as an ordering on the (Basis, state) composite index.
 
@@ -72,6 +70,23 @@ What Dekel forgot to show in his graph is the separation (perhaps by vertical li
 ## Idea 4: Vertical lines to separate values from different subset chocies.
 
 ## Idea 5: Idea 3, but with the vertical lines.
-That's probably what we need to do...
-I just need to write the histogram code, and I am in no state to do that.
-Maybe tomorrow morning?
+This is what I ended up wgoint with, with a slight modification:
+Instead of lines separating the different bases, I colored the x-y plane to in different colors for different intervals, where each interval describhes a specific MUB.
+
+
+
+# The required experiments
+okay.
+Let's use this to compile all of the experiments that I agreed with Tal that I'd do.
+
+## 2 qubits
+molecular and tr-is hams, landscaping and Dekel's expressive ansatz VQE.
+
+## 3 qubits
+maxcuts and tr-is hams (no option for moleculars), using shifted MUBs for landscaping and VQE.
+
+## 4 qubits
+maxcuts, molecular and tr-is hams, using shifted half-MUBs for landscaping and VQE.
+
+## 5-8 qubits
+maxvuts and tr-is hams, using shifted half-MUBs for landscaping and VQE.
