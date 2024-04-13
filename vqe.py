@@ -32,7 +32,11 @@ def get_standard_params(n_qubits: int) -> Parameters:
 
 
 
-def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initial_state: QuantumCircuit, params: Parameters) -> tuple[int, float, bool]:
+def run_vqe_experiment(hamiltonian: SparsePauliOp,
+                       ansatz: QuantumCircuit,
+                       initial_thetas: list[np.float64] | None,
+                       initial_state_circ: QuantumCircuit | None,
+                       params: Parameters) -> tuple[int, float, bool]:
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
     optimizer_obj = None
@@ -48,7 +52,8 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
         )
     else:
         raise Exception('Optimizer not supported in this experiment!~')
-    ansatz_with_prepened_mub = initial_state.compose(ansatz, range(ansatz.num_qubits), inplace=False)
+    if initial_state_circ is not None:
+        ansatz = initial_state_circ.compose(ansatz, range(ansatz.num_qubits), inplace=False)
 
     # enforcing the success bound
     class BoundHitException(Exception):
@@ -65,9 +70,13 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp, ansatz: QuantumCircuit, initi
                 print(f"thetas: {theta}")
         if (cost < params.exact_result + params.success_bound):
             raise BoundHitException(eval_count, cost)
-        
+
+    if initial_thetas is None:
+        initial_thetas = [0.0]*ansatz.num_parameters
+    vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz, optimizer=optimizer_obj, callback=callback_fun, initial_point = initial_thetas)
+
     try:
-        vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz_with_prepened_mub, optimizer=optimizer_obj, callback=callback_fun, initial_point = [0.0]*ansatz.num_parameters)
+        
         res = vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
         return res.cost_function_evals, res.optimal_value, False
     except BoundHitException as e:
