@@ -35,7 +35,7 @@ def get_standard_params(n_qubits: int) -> Parameters:
 def run_vqe_experiment(hamiltonian: SparsePauliOp,
                        ansatz: QuantumCircuit,
                        initial_thetas: list[np.float64] | None,
-                       prepened_state_circ: QuantumCircuit | None,
+                       initial_state_circ: QuantumCircuit | None,
                        params: Parameters) -> tuple[int, float, bool]:
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
@@ -52,8 +52,8 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
         )
     else:
         raise Exception('Optimizer not supported in this experiment!~')
-    if prepened_state_circ is not None:
-        ansatz = prepened_state_circ.compose(ansatz, range(ansatz.num_qubits), inplace=False)
+    if initial_state_circ is not None:
+        ansatz = initial_state_circ.compose(ansatz, range(ansatz.num_qubits), inplace=False)
 
     # enforcing the success bound
     class BoundHitException(Exception):
