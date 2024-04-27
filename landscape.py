@@ -49,6 +49,7 @@ class TotalLandscapeResult:
     n_mub_qubits: int
     exact_value: np.float64 | None
     appended_ansatz: QuantumCircuit | None
+    # op_desc: str | None
     n_qubits: int
     
     def __init__(self, op: SparsePauliOp, mub_results: list[MUBLandscapeResult],
