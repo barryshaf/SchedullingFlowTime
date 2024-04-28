@@ -15,17 +15,6 @@ import numpy as np
 from hamiltonians import get_expectation_value
 from mub_state_gen import generate_mub_state_circ
 
-NUM_STATES_2_QUBITS = 4
-NUM_MUBS_2_QUBITS = 5
-NUM_STATES_3_QUITS = 8
-NUM_MUBS_3_QUBTIS = 9
-
-# A landscape sampling result contains the three following fields:
-# (subset_idx, mub_idx, state_idx): the triple index identifying the specific state.
-# A circuit generating that specific state.
-# The value of that point in the landscape.
-# ResultTuple = tuple[tuple, QuantumCircuit, np.float64]
-# LandscapeResultsType = list[list[list[ResultTuple]]]
 
 @dataclass
 class MUBIndex:
@@ -76,15 +65,11 @@ class TotalLandscapeResult:
 def calculate_energy_landscape(op: SparsePauliOp, n_mub_qubits: int, subset_list: list[tuple],
                                 appended_ansatz: QuantumCircuit | None = None,
                                 plus_for_non_mub: bool = False) -> TotalLandscapeResult:
-    num_states = num_mubs = 0
-    if n_mub_qubits == 2:
-        num_states = NUM_STATES_2_QUBITS
-        num_mubs = NUM_MUBS_2_QUBITS
-    elif n_mub_qubits == 3:
-        num_states = NUM_STATES_3_QUITS
-        num_mubs = NUM_MUBS_3_QUBTIS
-    else:
+    if n_mub_qubits < 1 or n_mub_qubits > 3:
         raise Exception("We do not support this size of MUB states.")
+    num_states = 2 ** n_mub_qubits
+    num_mubs = num_states + 1
+       
     total_res: list[MUBLandscapeResult] = []
     for mub_idx in range(num_mubs):
         mub_res: MUBLandscapeResult = []

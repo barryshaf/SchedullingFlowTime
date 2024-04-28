@@ -58,7 +58,7 @@ def calculate_energy_landscape(op: SparsePauliOp, n_mub_qubits: int, subset_list
         total_res.append(mub_res)
     return total_res
 
-
+op_desc
 
 def flatten_results(results: LandscapeResultsType) -> list[ResultTuple]:
     flat_res = []

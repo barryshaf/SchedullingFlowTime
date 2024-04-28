@@ -90,3 +90,23 @@ maxcuts, molecular and tr-is hams, using shifted half-MUBs for landscaping and V
 
 ## 5-8 qubits
 maxvuts and tr-is hams, using shifted half-MUBs for landscaping and VQE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Right, we're almost there.
+What's mising, then?
+- Decide on how to display both order and value.
+    -   For order I think we can define a line, and for value the color scheme.
+    -   making it into a line would be harder though.
+-   Add the molecular 4-qubit example.
+-   see what else Tal wanted.
