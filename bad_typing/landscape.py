@@ -75,7 +75,7 @@ def flatten_energies(results: LandscapeResultsType) -> list[np.float64]:
 
 
 
-def find_k_best_results(results: LandscapeResultsType, k: int) -> list[ResultTuple]:
+def find_k_best_points(results: LandscapeResultsType, k: int) -> list[ResultTuple]:
     results = flatten_results(results)
     return sorted(results, key=(lambda x: x[2]))[:k]
 

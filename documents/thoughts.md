@@ -21,7 +21,7 @@ The Y axis is good. It always means the specific thing that we want it to mean (
 -   Gives meaningful data about bases.
 -   
 ### Disadvantages:
---  The colors will be a bit useless because they can be replaced by seperating vertical lines
+-  The colors will be a bit useless because they can be replaced by seperating vertical lines
 -   understanding the "heat map" is still done by "summing with your eyes" over horizontal lines.
 -   
 

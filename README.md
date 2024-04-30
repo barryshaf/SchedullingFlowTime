@@ -9,6 +9,8 @@ Test methods to do quantum exhaustive search
 -   `graphing.py`: generation of displayable graphs. Energy landscape, energy value histograms, and graphs.
 -   `maxcut.py`: utilities for maxcut problems.
 -   `mub_state_gen.py`: generation of states of MUBs.
+-   `ansatz.ipynb`: Contains the code to generate all of the experiment asnatzes (expressive 1-2 qubits, and hardware-efficient for >2 qubits).
+Currently a notebook because it includes the formulas for the parameters of the 2-qubit expressive ansatz. 
 
 ## Experiment Notebooks
 ### `transverse_experiments.ipynb`

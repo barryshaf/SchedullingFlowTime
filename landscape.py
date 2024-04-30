@@ -21,6 +21,9 @@ class MUBIndex:
     subset_idx: int
     mub_idx: int
     basis_state_idx: int
+    
+    def __str__(self) -> str:
+        return f"subset {self.subset_idx}, MUB {self.mub_idx}, state {self.basis_state_idx}"
 
 @dataclass
 class LandscapeResult:
@@ -107,7 +110,7 @@ def flatten_energies(results: TotalLandscapeResult) -> list[np.float64]:
 
 
 
-def find_k_best_results(results: TotalLandscapeResult, k: int) -> list[LandscapeResult]:
+def find_k_best_points(results: TotalLandscapeResult, k: int) -> list[LandscapeResult]:
     results = flatten_results(results)
     return sorted(results, key=(lambda x: x.value))[:k]
 

@@ -1,10 +1,13 @@
+from dataclasses import dataclass
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_algorithms.minimum_eigensolvers import VQE
 from qiskit_algorithms.optimizers import COBYLA, L_BFGS_B
 from qiskit.primitives import Estimator
 
-import numpy as np
+THROW_ON_SUCCESS = False
 
 class Parameters:
     def __init__(self, n_qubits: int, n_layers: int, optimizer: str,
@@ -25,12 +28,21 @@ class Parameters:
         self.num_of_starting_points = num_of_starting_points  # What amount of the best initial points is tested
         self.record_progress = record_progress # whether to return a list of all thetas from the VQE experiment
         
-
+@dataclass
+class MyVQEResult:
+    n_evals: int
+    final_cost: np.float64
+    terminated_on_success_bnound: bool
+    costs_list_included: bool
+    costs_list: list[np.float64]
+    thetas_list_included: bool
+    thetas_list: list[np.array]
+    desc: str = ""
 
 
 def get_standard_params(n_qubits: int) -> Parameters:
-    return Parameters(n_qubits=n_qubits, n_layers=5, optimizer='COBYLA', tol=1e-6,
-                        success_bound=1e-3, max_iter=1000, report_period=20, report_thetas=False,
+    return Parameters(n_qubits=n_qubits, n_layers=n_qubits, optimizer='COBYLA', tol=1e-6,
+                        success_bound=1e-3, max_iter=1000*n_qubits, report_period=10000, report_thetas=False,
                         num_of_starting_points=5)
 
 
@@ -39,7 +51,7 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
                        ansatz: QuantumCircuit,
                        initial_thetas: list[np.float64] | None,
                        prepened_state_circ: QuantumCircuit | None,
-                       params: Parameters) -> tuple[int, float, bool, list[np.ndarray], list[np.float64]]:
+                       params: Parameters) -> MyVQEResult:
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
     optimizer_obj = None
@@ -61,7 +73,7 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
     thetas_list = []
     cost_list = []
     # enforcing the success bound
-    class BoundHitException(Exception):
+    class BoundHitException(StopIteration):
         def __init__(self, n_evals, final_cost):
             self.n_evals = n_evals
             self.final_cost = final_cost
@@ -76,7 +88,7 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
             print(f"{eval_count}: {cost}")
             if (params.report_thetas):
                 print(f"thetas: {theta}")
-        if (cost < params.exact_result + params.success_bound):
+        if THROW_ON_SUCCESS and (cost < params.exact_result + params.success_bound):
             raise BoundHitException(eval_count, cost)
 
     if initial_thetas is None:
@@ -86,6 +98,12 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
     try:
         
         res = vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
-        return res.cost_function_evals, res.optimal_value, False, thetas_list
+        return MyVQEResult(n_evals=res.cost_function_evals, final_cost=res.optimal_value,
+                           terminated_on_success_bnound=False,
+                           costs_list_included=params.record_progress, costs_list=cost_list,
+                           thetas_list_included=params.record_progress, thetas_list=thetas_list)
     except BoundHitException as e:
-        return e.n_evals, e.final_cost, True, thetas_list, cost_list
+        return MyVQEResult(n_evals=e.n_evals, final_cost=e.final_cost,
+                           terminated_on_success_bnound=True,
+                           costs_list_included=params.record_progress, costs_list=cost_list,
+                           thetas_list_included=params.record_progress, thetas_list=thetas_list)
