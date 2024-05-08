@@ -50,7 +50,7 @@ class TotalLandscapeResult:
         self.op = op
         self.mub_results = mub_results
         self.n_mub_qubits = n_mub_qubits
-        self.exact_value = exact_value
+        self.ground_energy = exact_value
         self.appended_ansatz = appended_ansatz
         self.n_qubits = op.num_qubits
         
@@ -112,7 +112,10 @@ def flatten_energies(results: TotalLandscapeResult) -> list[np.float64]:
 
 def find_k_best_points(results: TotalLandscapeResult, k: int) -> list[LandscapeResult]:
     results = flatten_results(results)
-    return sorted(results, key=(lambda x: x.value))[:k]
+    return list(sorted(results, key=(lambda x: x.value))[:k])
 
 
+def find_k_worst_points(results: TotalLandscapeResult, k: int) -> list[LandscapeResult]:
+    results = flatten_results(results)
+    return list(reversed(sorted(results, key=(lambda x: x.value))))[:k]
 

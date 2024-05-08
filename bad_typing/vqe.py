@@ -20,7 +20,7 @@ class Parameters:
         self.max_iter = max_iter            # iteration bound
         self.report_period = report_period  # how many iterations before a callback print.
         self.report_thetas = report_thetas  # whether to show the paramneter vector at the callback print
-        self.exact_result = exact_result    # the exact result that we compare ourselves to.
+        self.ground_energy = exact_result    # the exact result that we compare ourselves to.
         self.num_of_starting_points = num_of_starting_points  # What amount of the best initial points is tested
 
 
@@ -62,13 +62,13 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
             self.final_cost = final_cost
 
     def callback_fun(eval_count: int, theta: np.ndarray, cost: float, metadata: dict) -> None:
-        if params.exact_result is None:
+        if params.ground_energy is None:
             return
         if (eval_count % params.report_period == 0):
             print(f"{eval_count}: {cost}")
             if (params.report_thetas):
                 print(f"thetas: {theta}")
-        if (cost < params.exact_result + params.success_bound):
+        if (cost < params.ground_energy + params.success_bound):
             raise BoundHitException(eval_count, cost)
 
     if initial_thetas is None:

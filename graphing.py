@@ -22,7 +22,7 @@ def display_energy_landscape(energy_landscape_results: TotalLandscapeResult, gra
         # Show separation between different MUBs
         plt.axvspan(idx_counter - mub_results_size, idx_counter, alpha=0.1, color=f"C{i}")
     # Show exact result
-    plt.axhline(y=energy_landscape_results.exact_value, lw=0.6, color='red')
+    plt.axhline(y=energy_landscape_results.ground_energy, lw=0.6, color='red')
     # Show comp. basis specifically
     xmin, xmax, ymin, ymax = plt.axis()
     plt.text(x=basis_size*0.25, y=ymin + (ymax-ymin)*0.8, s='COMP', fontsize=10)
@@ -45,7 +45,7 @@ def display_energy_histogram(energy_landscape_results: TotalLandscapeResult, bin
     flat_results = flatten_energies(energy_landscape_results)
     plt.hist(flat_results, bins)
     # Show exact result
-    plt.axvline(x=energy_landscape_results.exact_value, lw=1, color='red')
+    plt.axvline(x=energy_landscape_results.ground_energy, lw=1, color='red')
 
     plt.xlabel("Cost function result")
     plt.ylabel("number of results")
@@ -68,9 +68,10 @@ def draw_graph(G: nx.Graph):
 def plot_VQE_evals(vqe_result_list: list[MyVQEResult], title: str = "", linewidth: float = 1, dpi: int=DPI) -> None:
     plt.figure(figsize=FIG_SIZE, dpi=dpi)
     plt.title(title)
-    vqe_result_list.sort(key=(lambda res: res.costs_list[0]))
     for vqe_result in vqe_result_list:
         assert vqe_result.costs_list_included
+    vqe_result_list.sort(key=(lambda res: res.costs_list[0]))
+    for vqe_result in vqe_result_list:
         plt.plot(np.arange(len(vqe_result.costs_list)), np.array(vqe_result.costs_list),
                  label=vqe_result.desc, linewidth=linewidth)
     plt.legend()
