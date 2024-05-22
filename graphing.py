@@ -6,18 +6,22 @@ from landscape import TotalLandscapeResult, flatten_energies
 from vqe import MyVQEResult
 
 FIG_SIZE = (8,5)
-DPI = 100
+DPI = 400
 
 def display_energy_landscape(energy_landscape_results: TotalLandscapeResult, graph_title: str="Energy landscape",
-                                show_legend=False, dpi: int=DPI):
-    fig = plt.figure(figsize=FIG_SIZE, dpi=dpi)
+                                show_legend=False):
+    fig = plt.figure(figsize=FIG_SIZE, dpi=DPI)
     idx_counter = 0
     basis_size = energy_landscape_results.basis_size
     mub_results_size = basis_size * energy_landscape_results.subset_num
     for i, mub_res in enumerate(energy_landscape_results.mub_results):
         for j, subset_res in enumerate(mub_res):
             energies_only = [result.value for result in subset_res]
-            plt.plot(list(range(idx_counter, idx_counter+basis_size)), energies_only, 'o', lw=0.4, label=f"MUB {i}, subset {j}")
+            
+            # For plots with full MUBs (no different subsets in each basis), have a distinct color for each basis.
+            # For plots with partial MUBs (several subsets in each basis), keep distinct bases 
+            state_color = f"C{i}" if len(mub_res) == 1 else f"C{j}"
+            plt.plot(list(range(idx_counter, idx_counter+basis_size)), energies_only, 'o', color=state_color, lw=0.4, label=f"MUB {i}, subset {j}")
             idx_counter += basis_size
         # Show separation between different MUBs
         plt.axvspan(idx_counter - mub_results_size, idx_counter, alpha=0.1, color=f"C{i}")
@@ -36,8 +40,8 @@ def display_energy_landscape(energy_landscape_results: TotalLandscapeResult, gra
 
 
 def display_energy_histogram(energy_landscape_results: TotalLandscapeResult, bins=100,
-                                graph_title="Energy landscape histogram", show_legend=False, dpi: int=DPI):
-    fig = plt.figure(figsize=FIG_SIZE, dpi=dpi)
+                                graph_title="Energy landscape histogram", show_legend=False):
+    fig = plt.figure(figsize=FIG_SIZE, dpi=DPI)
     plt.locator_params(axis='x', nbins=min(bins//2, 30), tight=True)
     plt.xticks(fontsize=10, rotation=60)
     plt.locator_params(axis='y', nbins=10)
@@ -65,19 +69,20 @@ def draw_graph(G: nx.Graph):
     plt.show()
 
 
-def plot_VQE_evals(vqe_result_list: list[MyVQEResult], title: str = "", linewidth: float = 1, dpi: int=DPI) -> None:
-    plt.figure(figsize=FIG_SIZE, dpi=dpi)
+def plot_VQE_evals(vqe_result_list: list[MyVQEResult], title: str = "", linewidth: float = 1) -> None:
+    plt.figure(figsize=FIG_SIZE, dpi=DPI)
     plt.title(title)
     for vqe_result in vqe_result_list:
         assert vqe_result.costs_list_included
     vqe_result_list.sort(key=(lambda res: res.costs_list[0]))
     for vqe_result in vqe_result_list:
+        plt.scatter([0], vqe_result.costs_list[:1], s=20)
         plt.plot(np.arange(len(vqe_result.costs_list)), np.array(vqe_result.costs_list),
                  label=vqe_result.desc, linewidth=linewidth)
     plt.legend()
     plt.show()
 
-def plot_VQE_evals_list(experiment_list: list[list[MyVQEResult]], title_start: str = "", linewidth: float = 1, dpi: int=DPI) -> None:
+def plot_VQE_evals_list(experiment_list: list[list[MyVQEResult]], title_start: str = "", linewidth: float = 1) -> None:
     for i, experiment in enumerate(experiment_list):
-        plot_VQE_evals(experiment, f"{title_start} #{i+1}", linewidth, dpi)
+        plot_VQE_evals(experiment, f"{title_start} #{i+1}", linewidth)
 

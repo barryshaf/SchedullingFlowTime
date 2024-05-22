@@ -41,7 +41,18 @@ class MyVQEResult:
 
 
 def get_standard_params(n_qubits: int) -> Parameters:
-    return Parameters(n_qubits=n_qubits, n_layers=n_qubits, optimizer='COBYLA', tol=1e-6,
+    # Done because the VQE was stuck after reaching the goal
+    if n_qubits == 2:  
+        tol = 1e-2
+    elif n_qubits == 3:
+        tol = 1e-2
+    elif n_qubits == 4:
+        tol = 5e-2
+    elif n_qubits == 8:
+        tol = 1e-2
+    else:
+        tol = 1e-6
+    return Parameters(n_qubits=n_qubits, n_layers=n_qubits, optimizer='COBYLA', tol=tol,
                         success_bound=1e-3, max_iter=1000*n_qubits, report_period=10000, report_thetas=False,
                         num_of_starting_points=5)
 
@@ -51,7 +62,9 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
                        ansatz: QuantumCircuit,
                        initial_thetas: list[np.float64] | None,
                        prepened_state_circ: QuantumCircuit | None,
-                       params: Parameters) -> MyVQEResult:
+                       params: Parameters,
+                       desc: str = ""
+                       ) -> MyVQEResult:
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
     optimizer_obj = None
@@ -101,9 +114,39 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
         return MyVQEResult(n_evals=res.cost_function_evals, final_cost=res.optimal_value,
                            terminated_on_success_bnound=False,
                            costs_list_included=params.record_progress, costs_list=cost_list,
-                           thetas_list_included=params.record_progress, thetas_list=thetas_list)
+                           thetas_list_included=params.record_progress, thetas_list=thetas_list, desc=desc)
     except BoundHitException as e:
         return MyVQEResult(n_evals=e.n_evals, final_cost=e.final_cost,
                            terminated_on_success_bnound=True,
                            costs_list_included=params.record_progress, costs_list=cost_list,
-                           thetas_list_included=params.record_progress, thetas_list=thetas_list)
+                           thetas_list_included=params.record_progress, thetas_list=thetas_list, desc=desc)
+
+
+def sample_single_vqe_value(hamiltonian: SparsePauliOp,
+                       ansatz: QuantumCircuit,
+                       initial_thetas: list[np.float64] | None,
+                       prepened_state_circ: QuantumCircuit | None,
+                       params: Parameters) -> float:
+    # preparing the VQE components
+    estimator_obj = Estimator()  # Internal qiskit structure
+    optimizer_obj = None
+    if params.optimizer == 'COBYLA':
+        optimizer_obj = COBYLA(maxiter = 1)
+    elif params.optimizer == 'BFGS':
+        optimizer_obj = L_BFGS_B(maxiter = 1)
+    else:
+        raise Exception('This optimizer is not supported in this experiment!')
+    if prepened_state_circ is not None:
+        ansatz = prepened_state_circ.compose(ansatz, range(ansatz.num_qubits), inplace=False)
+
+    val = 0
+    def callback_fun(eval_count: int, theta: np.ndarray, cost: float, metadata: dict) -> None:
+        val = cost
+
+    if initial_thetas is None:
+        initial_thetas = [0.0]*ansatz.num_parameters
+    vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz, optimizer=optimizer_obj, callback=callback_fun, initial_point = initial_thetas)
+
+
+    vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
+    return val
