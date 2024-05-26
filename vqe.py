@@ -1,3 +1,7 @@
+"""
+Module for VQE experiments, hyper-parameters and results.
+"""
+
 from dataclasses import dataclass
 import numpy as np
 
@@ -10,6 +14,10 @@ from qiskit.primitives import Estimator
 THROW_ON_SUCCESS = False
 
 class Parameters:
+    """
+    Class containing the hyper-parameters of a VQE experiment.
+    """
+    # If someone wants to, they can turn this into a dataclass.
     def __init__(self, n_qubits: int, n_layers: int, optimizer: str,
                     tol: float, success_bound: float, max_iter: int,
                     report_period: int, report_thetas: bool,
@@ -30,18 +38,29 @@ class Parameters:
         
 @dataclass
 class MyVQEResult:
-    n_evals: int
-    final_cost: np.float64
-    terminated_on_success_bnound: bool
-    costs_list_included: bool
-    costs_list: list[np.float64]
-    thetas_list_included: bool
-    thetas_list: list[np.array]
-    desc: str = ""
+    """
+    Dataclass containing the results from a VQE experiment.
+    """
+    n_evals: int                        # Number of cost evaluations
+    final_cost: np.float64              # Final expectation value
+    erminated_on_success_bound: bool    # Whether the optimization ended because of my manual success bound
+    costs_list_included: bool           # Whether the function evalulation list exists
+    costs_list: list[np.float64]        # The list of function evalulations
+    thetas_list_included: bool          # Whether the theta vectors are included in the result
+    thetas_list: list[np.array]         # The list of theta vectors from each function evaluation
+    desc: str = ""                      # Description string for the presentation.
 
 
 def get_standard_params(n_qubits: int) -> Parameters:
-    # Done because the VQE was stuck after reaching the goal
+    """Get the usual VQE experiment hyperparameters, depending on the # of qubits.
+
+    Args:
+        n_qubits (int): number of qubits in the VQE run. Affects the tol, # of iterations, etc.
+
+    Returns:
+        Parameters: The hyperparameter object.
+    """
+    # These values were found manually, because the VQE was stuck after reaching the goal.
     if n_qubits == 2:  
         tol = 1e-2
     elif n_qubits == 3:
@@ -53,7 +72,7 @@ def get_standard_params(n_qubits: int) -> Parameters:
     else:
         tol = 1e-6
     return Parameters(n_qubits=n_qubits, n_layers=n_qubits, optimizer='COBYLA', tol=tol,
-                        success_bound=1e-3, max_iter=1000*n_qubits, report_period=10000, report_thetas=False,
+                        success_bound=1e-3, max_iter=500*n_qubits, report_period=10000, report_thetas=False,
                         num_of_starting_points=5)
 
 
@@ -65,6 +84,27 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
                        params: Parameters,
                        desc: str = ""
                        ) -> MyVQEResult:
+    """Run a VQE expreiment.
+
+    Args:
+        hamiltonian (SparsePauliOp): Hamiltonian that we wish to solve.
+        ansatz (QuantumCircuit): *parametric* ansatz for the VQE.
+        initial_thetas (list[np.float64] | None): Initial vector for the ansatz. \
+            If defined as None, the first parameter vector is the zero vector.
+        prepened_state_circ (QuantumCircuit | None): Circuit to be added to the regular ansatz. \
+            This is useful when trying to run from a specific (but shifted) MUB state. \
+            Contact Ittay/Tal/Dekel for an explanation on shifted MUBs.
+        params (Parameters): VQE hyperparameters.
+        desc (str, optional): string description to add to the result. Defaults to "".
+
+    Raises:
+        Exception: When the optimizer hyper-parameter is not supported.
+        BoundHitException: When the VQE comes close enough to the pre-calculated exact result. \
+            Should always be handled in-function.
+
+    Returns:
+        MyVQEResult: Structure containing the result.
+    """
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
     optimizer_obj = None
@@ -85,13 +125,22 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
 
     thetas_list = []
     cost_list = []
-    # enforcing the success bound
+    # Manual Success Bound
+    # Sometimes, when we run VQE and know what the exact result is going to be,
+    # we want to stop the optimizer from running on and on when it reached the end but doesn't know it.
+    # `scipy` (the package behind qiskit that handles optimization) lets us handle a manual callback function after each cost eval.
+    # However, there is no graceful way to stop the execution using this callback.
+    # The only option is to throw an exception and catch it outside of the optimizer.
+    # This works on *some* OSes, but usually breaks with Macs and with Jupyter notbeooks.
+    # For the VQE-MUB paper, we did not use this feature, but I'm leaving it in for future use.
     class BoundHitException(StopIteration):
         def __init__(self, n_evals, final_cost):
             self.n_evals = n_evals
             self.final_cost = final_cost
 
     def callback_fun(eval_count: int, theta: np.ndarray, cost: float, metadata: dict) -> None:
+        # This function records the parameter vector and cost (if the hyperparams say to do so),
+        # prints the result every once in a while and raises a BoundHitException if the option is enabled.
         if params.record_progress:
             thetas_list.append(theta)
             cost_list.append(cost)
@@ -104,20 +153,22 @@ def run_vqe_experiment(hamiltonian: SparsePauliOp,
         if THROW_ON_SUCCESS and (cost < params.ground_energy + params.success_bound):
             raise BoundHitException(eval_count, cost)
 
+    # default is a zeroed parameter vector.
     if initial_thetas is None:
         initial_thetas = [0.0]*ansatz.num_parameters
     vqe_obj = VQE(estimator=estimator_obj, ansatz=ansatz, optimizer=optimizer_obj, callback=callback_fun, initial_point = initial_thetas)
 
     try:
-        
         res = vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
         return MyVQEResult(n_evals=res.cost_function_evals, final_cost=res.optimal_value,
-                           terminated_on_success_bnound=False,
+                           erminated_on_success_bound=False,
                            costs_list_included=params.record_progress, costs_list=cost_list,
                            thetas_list_included=params.record_progress, thetas_list=thetas_list, desc=desc)
+    
+    # If the run was terminated from reaching the success bound, extract the results from inside the exception.
     except BoundHitException as e:
         return MyVQEResult(n_evals=e.n_evals, final_cost=e.final_cost,
-                           terminated_on_success_bnound=True,
+                           erminated_on_success_bound=True,
                            costs_list_included=params.record_progress, costs_list=cost_list,
                            thetas_list_included=params.record_progress, thetas_list=thetas_list, desc=desc)
 
@@ -127,6 +178,21 @@ def sample_single_vqe_value(hamiltonian: SparsePauliOp,
                        initial_thetas: list[np.float64] | None,
                        prepened_state_circ: QuantumCircuit | None,
                        params: Parameters) -> float:
+    """This is a "cheat" function, used to sample the expectation value of an ansatz \
+        over some Hamiltonian with a specific parameter vector. \
+        For the VQE-MUB paper, this is used to check which random theta vector has the \
+        best starting option.
+        This can, and should, be optimized.
+
+    Args:
+        the same as run_vqe_experiment.
+
+    Raises:
+        same.
+
+    Returns:
+        float: the expectation value with that vector.
+    """
     # preparing the VQE components
     estimator_obj = Estimator()  # Internal qiskit structure
     optimizer_obj = None

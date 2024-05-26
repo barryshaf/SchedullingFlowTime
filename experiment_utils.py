@@ -1,3 +1,7 @@
+"""
+Module with definitions of specific experiments.
+"""
+
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import QuantumCircuit
 import numpy as np
@@ -14,6 +18,7 @@ from landscape import (
 from graphing import display_energy_landscape, display_energy_histogram, plot_VQE_evals
 from vqe import get_standard_params, run_vqe_experiment, sample_single_vqe_value, MyVQEResult, Parameters
 
+# it's in a notebook because it's easier to keep the math that way.
 from ipynb.fs.full.ansatz import (
     params_MUB_1q,
     params_MUB_2q,
@@ -25,6 +30,16 @@ from ipynb.fs.full.ansatz import (
 
 
 def run_and_record_landscape(ham: SparsePauliOp, n_mub_qubits: int, desc: str = "") -> TotalLandscapeResult:
+    """Calculate a landscape, display and return the result.
+
+    Args:
+        ham (SparsePauliOp): hamiltonian to landscape.
+        n_mub_qubits (int): size of qubit subsets to generate MUBs on.
+        desc (str, optional): graph title. Defaults to "".
+
+    Returns:
+        TotalLandscapeResult: result of the landscape calculation.
+    """
     n_qubits = ham.num_qubits
     assert n_mub_qubits <= n_qubits
     mub_subsets = generate_all_subsets(n_mub_qubits, n_qubits)
@@ -39,12 +54,25 @@ def run_and_record_landscape(ham: SparsePauliOp, n_mub_qubits: int, desc: str = 
 
 
 def run_and_record_landscape_list(hams: list[SparsePauliOp], n_mub_qubits: int, descs: list[str] = None) -> list[TotalLandscapeResult]:
+    """
+    Batch version of run_and_record_landscape.
+    """
     if descs is None:
         descs = [""] * len(hams)
     return [run_and_record_landscape(ham, n_mub_qubits, desc) for ham,desc  in zip(hams,descs)]
 
 
 def run_and_record_landscape_shifted(ham: SparsePauliOp, n_mub_qubits: int, ansatz: QuantumCircuit, desc: str = "") -> TotalLandscapeResult:
+    """Calculate a landscape *using shifted MUBs*, display and return the result.
+
+    Args:
+        ham (SparsePauliOp): hamiltonian to landscape.
+        n_mub_qubits (int): size of qubit subsets to generate MUBs on.
+        desc (str, optional): graph title. Defaults to "".
+
+    Returns:
+        TotalLandscapeResult: result of the landscape calculation.
+    """
     n_qubits = ham.num_qubits
     assert n_mub_qubits <= n_qubits
     mub_subsets = generate_all_subsets(n_mub_qubits, n_qubits)
@@ -60,15 +88,22 @@ def run_and_record_landscape_shifted(ham: SparsePauliOp, n_mub_qubits: int, ansa
 
 
 def run_and_record_landscape_shifted_list(hams: list[SparsePauliOp], n_mub_qubits: int, ansatz: QuantumCircuit, descs: list[str] = None) -> list[TotalLandscapeResult]:
+    """
+    Batch version of run_and_record_landscape_shifted.
+    """
     if descs is None:
         descs = [""] * len(hams)
     return [run_and_record_landscape_shifted(ham, n_mub_qubits, ansatz, desc) for ham,desc in zip(hams,descs)]
 
 
 ## Parameter definitions for VQE experiments ##
-
+# Yes, I know, this is clearly a misuse of get_standard_params.
+# You are welcome to improve this if you want to.
 
 def get_expressive_1q_params(n_qubits: int, ground_energy: float, record_progress: bool = True) -> Parameters:
+    """
+    VQE hyperparameters for experiments on 1 qubit with an expressive ansatz.
+    """
     std_params = get_standard_params(n_qubits)
     std_params.ground_energy = ground_energy
     std_params.report_period = 10
@@ -81,9 +116,12 @@ def get_expressive_1q_params(n_qubits: int, ground_energy: float, record_progres
 
 
 def get_expressive_2q_params(n_qubits: int, ground_energy: float, record_progress: bool = True) -> Parameters:
+    """
+    VQE hyperparameters for experiments on 2 qubits with an expressive ansatz.
+    """
     std_params = get_standard_params(n_qubits)
     std_params.ground_energy = ground_energy
-    std_params.report_period = 10
+    std_params.report_period = 20
     std_params.success_bound = 5e-3
     std_params.max_iter = 100
     std_params.record_progress = record_progress
@@ -91,9 +129,12 @@ def get_expressive_2q_params(n_qubits: int, ground_energy: float, record_progres
 
 
 def get_shifted_params(n_qubits: int, ground_energy: float, record_progress: bool = True) -> Parameters:
+    """
+    VQE hyperparameters for experiments on shifted MUBs.
+    """
     std_params = get_standard_params(n_qubits)
     std_params.ground_energy = ground_energy
-    std_params.report_period = 10
+    std_params.report_period = 200
     std_params.success_bound = 5e-3
     std_params.record_progress = record_progress
     return std_params
@@ -101,8 +142,16 @@ def get_shifted_params(n_qubits: int, ground_energy: float, record_progress: boo
 
 ## Functions for VQE Experiments from landscape points ##
 
-
 def run_and_record_vqe_expressive_1q(landscape: TotalLandscapeResult, record_progress: bool = True) -> list[MyVQEResult]:
+    """Run a VQE experiment for 1 qubit using an expressive ansatz from all landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): landscape points.
+        record_progress (bool, optional): whether to keep the list of theta vectors and cost evals. Defaults to True.
+
+    Returns:
+        list[MyVQEResult]: The VQE result from each separate landscape point.
+    """
     points = flatten_results(landscape)
     vqe_results = []
     print(f"The operator {landscape.op} has the exact value {landscape.ground_energy}.")
@@ -126,6 +175,15 @@ def run_and_record_vqe_expressive_1q(landscape: TotalLandscapeResult, record_pro
 
 
 def run_and_record_vqe_expressive_2q(landscape: TotalLandscapeResult, record_progress: bool = True) -> list[MyVQEResult]:
+    """Run a VQE experiment for 2 qubits using an expressive ansatz from all landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): landscape points.
+        record_progress (bool, optional): whether to keep the list of theta vectors and cost evals. Defaults to True.
+
+    Returns:
+        list[MyVQEResult]: The VQE result from each separate landscape point.
+    """
     best_5_points = find_k_best_points(landscape, 5)
     params = get_expressive_2q_params(landscape.n_qubits, get_exact_ground(landscape.op), record_progress)
     print(f"The operator {landscape.op} has the exact value {landscape.ground_energy}.")
@@ -149,6 +207,9 @@ def run_and_record_vqe_expressive_2q(landscape: TotalLandscapeResult, record_pro
 
 
 def run_and_record_vqe_expressive_2q_list(landscapes: list[TotalLandscapeResult], record_progress: bool = True) -> list[list[MyVQEResult]]:
+    """
+    Batch version of run_and_record_vqe_expressive_2q.
+    """
     return [run_and_record_vqe_expressive_2q(landscape, record_progress) for landscape in landscapes]
 
 
@@ -157,6 +218,16 @@ def run_and_record_vqe_shifted(
     ansatz: QuantumCircuit,
     record_progress: bool = True,
 ) -> list[MyVQEResult]:
+    """Run a VQE experiment using a non-expressive ansatz and shifted MUBs from all landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): landscape points.
+        ansatz (QuantumCircuit): parametric, non-expressive ansatz to use. 
+        record_progress (bool, optional): whether to keep the list of theta vectors and cost evals. Defaults to True.
+
+    Returns:
+        list[MyVQEResult]: The VQE result from each separate landscape point.
+    """
     best_5_points = find_k_best_points(landscape, 5)
     params = get_shifted_params(landscape.n_qubits, landscape.ground_energy, record_progress)
     initial_thetas = [0.0] * ansatz.num_parameters
@@ -178,6 +249,9 @@ def run_and_record_vqe_shifted(
 
 
 def run_and_record_vqe_shifted_list(landscapes: list[TotalLandscapeResult], ansatz: QuantumCircuit) -> list[list[MyVQEResult]]:
+    """
+    Batch version of run_and_record_vqe_shifted.
+    """
     return [run_and_record_vqe_shifted(landscape, ansatz) for landscape in landscapes]
 
 
@@ -187,6 +261,14 @@ def run_and_record_vqe_shifted_list(landscapes: list[TotalLandscapeResult], ansa
 def run_and_display_vqe_best_and_worst_expressive_2q(
     landscape: TotalLandscapeResult, k: int = 3
 ) -> None:
+    """Run VQE over 2 qubits with an expressive ansatz, \
+        from the best `k` landscape points and the worst `k` landscape points, \
+        and display the result.
+
+    Args:
+        landscape (TotalLandscapeResult): The energy landscape.
+        k (int, optional): number of starting points to take from the best and worst (each). Defaults to 3.
+    """
     best_points = find_k_best_points(landscape, k)
     worst_points = find_k_worst_points(landscape, k)
     params = get_expressive_2q_params(landscape.n_qubits, get_exact_ground(landscape.op), True)
@@ -217,6 +299,15 @@ def run_and_display_vqe_best_and_worst_expressive_2q(
 
 
 def run_and_display_vqe_best_and_worst_shifted(landscape: TotalLandscapeResult, ansatz: QuantumCircuit, k: int = 3) -> None:
+    """Run VQE with an non-expressive ansatz and shifted MUBs, \
+        from the best `k` landscape points and the worst `k` landscape points, \
+        and display the result.
+
+    Args:
+        landscape (TotalLandscapeResult): The energy landscape.
+        ansatz (QuantumCircuit): the parametric, non-expressive ansatz.
+        k (int, optional): number of starting points to take from the best and worst (each). Defaults to 3.
+    """
     best_points = find_k_best_points(landscape, k)
     worst_points = find_k_worst_points(landscape, k)
     params = get_shifted_params(landscape.n_qubits, landscape.ground_energy, True)
@@ -242,11 +333,18 @@ def run_and_display_vqe_best_and_worst_shifted(landscape: TotalLandscapeResult, 
     plot_VQE_evals(best_vqe_runs + worst_vqe_runs)
 
 
-def run_and_display_vqe_best_vs_random_expressive_2q(landscape: TotalLandscapeResult, ansatz: QuantumCircuit, k: int=3) -> None:
+def run_and_display_vqe_best_vs_random_expressive_2q(landscape: TotalLandscapeResult, k: int=3) -> None:
+    """Pick a set of random theta vectors, find the $k$ that get the best expectation value in the expressive ansatz, \
+        and compare their VQE to those the best $k$ landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): The energy landscape.
+        k (int, optional): number of starting points to take from the best and worst (each). Defaults to 3.
+    """
     best_points = find_k_best_points(landscape, k)
     params = get_expressive_2q_params(landscape.n_qubits, get_exact_ground(landscape.op), True)
     mub_initial_thetas = [params_MUB_2q(point.index.basis_state_idx, point.index.mub_idx) for point in best_points]
-
+    ansatz = gen_expressive_ansatz_2qubits()
     mub_vqe_runs = [run_vqe_experiment(
         hamiltonian=landscape.op,
         ansatz=ansatz,
@@ -274,6 +372,14 @@ def run_and_display_vqe_best_vs_random_expressive_2q(landscape: TotalLandscapeRe
 
 
 def run_and_display_vqe_best_vs_random_shifted(landscape: TotalLandscapeResult, ansatz: QuantumCircuit, k: int = 3) -> None:
+    """Pick a set of random theta vectors, find the $k$ that get the best expectation value with the ansatz, \
+        and compare their VQE to those the best $k$ shifted-MUB landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): The energy landscape.
+        ansatz: the parametric, non-expressive ansatz.
+        k (int, optional): number of starting points to take from the best and worst (each). Defaults to 3.
+    """
     best_points = find_k_best_points(landscape, k)
     params = get_shifted_params(landscape.n_qubits, landscape.ground_energy, True)
     zero_thetas = [0.0] * ansatz.num_parameters
