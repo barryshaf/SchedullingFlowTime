@@ -1,3 +1,0 @@
-jupyter
-conda-forge::pyscf==2.6.2
-matplotlib==3.9.2

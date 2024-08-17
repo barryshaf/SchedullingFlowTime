@@ -21,6 +21,9 @@ It is a notebook because it includes the formulas for the parameters of the 2-qu
 -   only includes the experiments we wish to put in the paper.
 -   should act as the most updated version.
 
+### `molecular_generation_code.ipynb`
+-   Code used to generate the qubit form of molecular hamiltonians.
+
 ## Documentation files
 -   `thoughts.md`: internal record of reserach directions.
 -   `thoughts_on_graphing_method.md`: ideas on how to best present the results of energy landscapes and VQE runs.
