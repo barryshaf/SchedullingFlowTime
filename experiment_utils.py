@@ -69,6 +69,7 @@ def get_expressive_1q_params(n_qubits: int, ground_energy: float, record_progres
     std_params.ground_energy = ground_energy
     std_params.report_period = 10
     std_params.success_bound = 1e-3
+    std_params.tol = 1e-1
     std_params.num_of_starting_points = 6
     std_params.max_iter = 50
     std_params.record_progress = record_progress
