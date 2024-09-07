@@ -8,6 +8,7 @@ RUN conda install -y matplotlib
 
 RUN pip install qiskit-nature==0.7.2
 
+COPY . /src
 
 EXPOSE 8888
 
