@@ -7,6 +7,7 @@ RUN conda install -y jupyter
 RUN conda install -y matplotlib
 
 RUN pip install qiskit-nature==0.7.2
+RUN pip install networkx
 
 COPY . /src
 
