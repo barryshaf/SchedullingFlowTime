@@ -43,7 +43,7 @@ def run_and_record_landscape(ham: SparsePauliOp, n_mub_qubits: int, desc: str = 
     n_qubits = ham.num_qubits
     assert n_mub_qubits <= n_qubits
     mub_subsets = generate_all_subsets(n_mub_qubits, n_qubits)
-    print(f"attempting all MUB states over the operator {ham if desc == "" else desc}")
+    print("attempting all MUB states over the operator", ham if desc == '' else desc)
     results = calculate_energy_landscape(ham, n_mub_qubits, mub_subsets)
     results.ground_energy = get_exact_ground(ham)
     print("Energy Landscape:")
