@@ -19,12 +19,12 @@ from graphing import display_energy_landscape, display_energy_histogram, plot_VQ
 from vqe import get_standard_params, run_vqe_experiment, sample_single_vqe_value, MyVQEResult, Parameters
 
 # it's in a notebook because it's easier to keep the math that way.
-from ipynb.fs.full.ansatz import (
-    params_MUB_1q,
-    params_MUB_2q,
-    gen_expressive_ansatz_1qubit,
-    gen_expressive_ansatz_2qubits,
-)
+#from ipynb.fs.full.ansatz import (
+#    params_MUB_1q,
+#    params_MUB_2q,
+#    gen_expressive_ansatz_1qubit,
+#    gen_expressive_ansatz_2qubits,
+#)
 
 ## Functions for landscape experiments ##
 
@@ -77,7 +77,7 @@ def run_and_record_landscape_shifted(ham: SparsePauliOp, n_mub_qubits: int, ansa
     assert n_mub_qubits <= n_qubits
     mub_subsets = generate_all_subsets(n_mub_qubits, n_qubits)
     zeroset_anastz = ansatz.assign_parameters([0.0] * ansatz.num_parameters)
-    print(f"attempting all MUB states over the operator {ham if desc == "" else desc}")
+    #print(f"attempting all MUB states over the operator {ham if desc == "" else desc}")
     results = calculate_energy_landscape(ham, n_mub_qubits, mub_subsets, appended_ansatz=zeroset_anastz)
     results.ground_energy = get_exact_ground(ham)
     print("Energy Landscape:")
@@ -143,6 +143,35 @@ def get_shifted_params(n_qubits: int, ground_energy: float, record_progress: boo
 
 ## Functions for VQE Experiments from landscape points ##
 
+def run_and_record_vqe_expressive(landscape: TotalLandscapeResult, record_progress: bool = True) -> list[MyVQEResult]:
+    """Run a VQE experiment for 1 qubit using an expressive ansatz from all landscape points.
+
+    Args:
+        landscape (TotalLandscapeResult): landscape points.
+        record_progress (bool, optional): whether to keep the list of theta vectors and cost evals. Defaults to True.
+
+    Returns:
+        list[MyVQEResult]: The VQE result from each separate landscape point.
+    """
+    points = flatten_results(landscape)
+    vqe_results = []
+    print(f"The operator {landscape.op} has the exact value {landscape.ground_energy}.")
+    print(f"Now trying to reach the value from different MUB points.")
+    for point in points:
+        # run VQE from all starting points
+        params = get_expressive_1q_params(landscape.n_qubits, get_exact_ground(landscape.op), record_progress)
+        print(f"running from state of index {point.index} and value {point.value}")
+        vqe_res = run_vqe_experiment(
+            hamiltonian=landscape.op,
+            ansatz=None,
+            initial_thetas=None,
+            prepened_state_circ=None,
+            params=params,
+        )
+        vqe_res.desc = str(point.index)
+        vqe_results.append(vqe_res)
+    return vqe_results
+####
 def run_and_record_vqe_expressive_1q(landscape: TotalLandscapeResult, record_progress: bool = True) -> list[MyVQEResult]:
     """Run a VQE experiment for 1 qubit using an expressive ansatz from all landscape points.
 
