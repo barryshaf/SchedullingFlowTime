@@ -19,12 +19,12 @@ from graphing import display_energy_landscape, display_energy_histogram, plot_VQ
 from vqe import get_standard_params, run_vqe_experiment, sample_single_vqe_value, MyVQEResult, Parameters
 
 # it's in a notebook because it's easier to keep the math that way.
-#from ipynb.fs.full.ansatz import (
-#    params_MUB_1q,
-#    params_MUB_2q,
-#    gen_expressive_ansatz_1qubit,
-#    gen_expressive_ansatz_2qubits,
-#)
+from ipynb.fs.full.ansatz import (
+    params_MUB_1q,
+    params_MUB_2q,
+    gen_expressive_ansatz_1qubit,
+    gen_expressive_ansatz_2qubits,
+)
 
 ## Functions for landscape experiments ##
 
