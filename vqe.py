@@ -216,3 +216,115 @@ def sample_single_vqe_value(hamiltonian: SparsePauliOp,
 
     vqe_obj.compute_minimum_eigenvalue(operator=hamiltonian)
     return val
+
+
+########################## 2025 I. Ram - simple VQE running
+
+from qiskit.circuit.library import EfficientSU2
+from qiskit_algorithms.minimum_eigensolvers import VQE
+from qiskit_algorithms.optimizers import COBYLA
+from qiskit_algorithms.utils import algorithm_globals
+from qiskit.primitives import Estimator
+import random
+
+def store_energy(energy_values, theta_path, eval_count: int, theta: np.ndarray, cost: float, metadata: dict):
+    energy_values.append(cost)
+    theta_path.append(theta)
+
+def plot_energies(energy_values, actual_min_eigenvalue=None):
+  #Plot
+  plt.plot(energy_values, marker='.')
+  if actual_min_eigenvalue != None:
+    plt.plot([0, len(energy_values)],[actual_min_eigenvalue]*2, "r--")
+  plt.title('VQE Optimization Energy per Iteration')
+  plt.xlabel('Iteration')
+  plt.ylabel('Energy')
+  plt.grid()
+  plt.show()
+
+def run_VQE(H_qub, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
+  algorithm_globals.random_seed = seed #42
+  random.seed(seed)
+  np.random.seed(seed)
+
+  ansatz = EfficientSU2(H_qub.num_qubits)
+  #ansatz.decompose().draw("mpl", style="iqp")
+
+  # Set up the VQE instance with COBYLA optimizer
+  optimizer = COBYLA(maxiter=maxiter)
+  estimator_obj = Estimator()  # Internal qiskit structure
+  vqe = VQE(ansatz=ansatz, optimizer=optimizer, estimator=estimator_obj, callback=callback_func)
+
+  # Run the VQE algorithm
+  result = vqe.compute_minimum_eigenvalue(H_qub)
+  print("Ground state energy:", result.eigenvalue.real)
+  print("Optimal parameters:", result.optimal_point)
+  #print("Number of iterations:", result.optimizer_evals)
+
+  plot_func()
+  return result.eigenvalue.real
+#######
+
+#Visualize Path
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+def visualize_path_2d(coordinates, axis1=None,axis2=None):
+    coordinates = np.array(coordinates)
+    n = len(coordinates[0])
+    # Randomly select two axes (dimensions)
+    axes = np.random.choice(range(n), size=2, replace=False)
+
+    # Extract the selected axes
+    x = coordinates[:, axes[0] if axis1 == None else axis1]
+    y = coordinates[:, axes[1] if axis2 == None else axis2]
+
+    # Create a plot
+    plt.figure(figsize=(5, 3))
+    plt.plot(x, y, marker='.', markersize=3, label='Path')
+
+    colors = cm.viridis(np.linspace(0, 1, coordinates.shape[0]))
+
+    # Plot the path with a color gradient
+    for i in range(coordinates.shape[0] - 1):
+        plt.plot(x[i:i+2], y[i:i+2], color=colors[i], linewidth=2)
+
+
+    # Add markers for all points (smaller markers for intermediate points)
+    plt.scatter(x[1:-1], y[1:-1], c='black', s=10, zorder=1)  # Intermediate points
+
+    # Highlight the first and last points with larger markers
+    plt.scatter(x[0], y[0], c='red', s=50, label='Start Point', zorder=2)  # First point
+    plt.scatter(x[-1], y[-1], c='green', s=50, label='End Point', zorder=2)  # Last point
+
+
+    plt.title(f'Path in Random 2D Projection of the {n}-Dimensional Space')
+    plt.xlabel(f'Dimension {axes[0] if axis1 == None else axis1}')
+    plt.ylabel(f'Dimension {axes[1] if axis2 == None else axis2}')
+    plt.grid()
+    plt.show()
+
+def visualize_path_1d(coordinates, axis=None):
+    coordinates = np.array(coordinates)
+    n = len(coordinates[0])
+    # Randomly select two axes (dimensions)
+    axes = np.random.choice(range(n), size=1, replace=False)[0]
+
+    # Extract the selected axes
+    y = coordinates[:, axes if axis == None else axis]
+    x = range(len(y))
+
+    # Create a plot
+    plt.figure(figsize=(5, 3))
+    plt.plot(x, y, marker='.', markersize=3, label='Path')
+
+    plt.title(f'Path in Random 1D Projection of the {n}-Dimensional Space')
+    plt.xlabel(f'Timestep')
+    plt.ylabel(f'Dimension {axes if axis == None else axis}')
+    plt.grid()
+    plt.show()
+
+
+def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, maxiter: int = 500, seed: int = 42):
+    return run_VQE(H_qub, maxiter=maxiter, seed=seed, plot_func=lambda: plot_energies(energy_values, min_eigenvalue), callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
