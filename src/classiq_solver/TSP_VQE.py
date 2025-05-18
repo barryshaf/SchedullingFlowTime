@@ -40,14 +40,11 @@ def CreatePauliOperator(P, v, t):
     pauli_list[idx] = P  # Set the specified Pauli operator at the site
     return PauliTerm(pauli=pauli_list, coefficient=1)
 
-identity = CreatePauliOperator(I, 0, 0)
+identity = CreatePauliOperator(I, 0, 0)  # Identity operator
     
 
 # Define quantum variables indexed by vertex and time
 # qubits = [[QuantumVariable(f"q_{v}_{t}") for t in range(N - 1)] for v in range(N - 1)]
-
-# Identity operator
-identity = I
 
 # --- Hamiltonian terms ---
 
@@ -122,8 +119,8 @@ for (u, v) in E:
     if u == 0:
         W0v = W[(0, v)]
         H_weight_depot += (W0v / 2) * (
-            -CreatePauliOperator(Z, v - 1, 0)
-            - CreatePauliOperator(Z, v - 1, N - 2)
+            -Z(qubits[v - 1][0])
+            - Z(qubits[v - 1][N - 2])
             + 2 * identity
         )
 
