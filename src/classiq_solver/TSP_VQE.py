@@ -1,9 +1,15 @@
 # Full Classiq-style Hamiltonian for TSP using Qmod in Python
+
+## Classiq stuff:
 import classiq
-classiq.authenticate()
-from classiq.core.model import QuantumModel
-from classiq.core.qmod import QuantumVariable, Z, I
+from classiq import PauliTerm
+I = classiq.Pauli.I
+X = classiq.Pauli.X
+Y = classiq.Pauli.Y
+Z = classiq.Pauli.Z
+# Other:
 from itertools import product
+
 
 # Problem parameters
 N = 4
@@ -21,8 +27,24 @@ W = {
     (1, 3): 3,
 }
 
+classiq.Pauli
+
+def index(v, t):
+    """Map 2D indices (v, t) to a 1D index."""
+    return v * (N - 1) + t
+
+def CreatePauliOperator(P, v, t):
+    """Create a Pauli operator with the specified P \in {I,X,Y,Z}, in the site (v,t)"""
+    pauli_list = [I] * num_qubits  # Start with identity on all sites
+    idx = index(v,t)  # Use the index function to get the 1D index
+    pauli_list[idx] = P  # Set the specified Pauli operator at the site
+    return PauliTerm(pauli=pauli_list, coefficient=1)
+
+identity = CreatePauliOperator(I, 0, 0)
+    
+
 # Define quantum variables indexed by vertex and time
-qubits = [[QuantumVariable(f"q_{v}_{j}") for j in range(N - 1)] for v in range(N - 1)]
+# qubits = [[QuantumVariable(f"q_{v}_{t}") for t in range(N - 1)] for v in range(N - 1)]
 
 # Identity operator
 identity = I
@@ -32,36 +54,36 @@ identity = I
 # H_vertices_TSP
 H_vertices = A * (N - 1) * (1 - (N - 1) + ((N - 1) ** 2) / 4) * identity
 for v in range(N - 1):
-    for j in range(N - 1):
-        H_vertices += (A * (2 - (N - 1)) / 2) * Z(qubits[v][j])
+    for t in range(N - 1):
+        H_vertices += (A * (2 - (N - 1)) / 2) * CreatePauliOperator(Z, v, t)
 
 for v in range(N - 1):
-    for j in range(N - 1):
-        for i in range(N - 1):
-            if j != i:
-                H_vertices += (A / 4) * Z(qubits[v][j]) * Z(qubits[v][i])
+    for t in range(N - 1):
+        for s in range(N - 1):
+            if t != s:
+                H_vertices += (A / 4) * CreatePauliOperator(Z, v, t) * CreatePauliOperator(Z, v, s)
 
 # H_time_TSP
 H_time = A * (N - 1) * (1 - (N - 1) + ((N - 1) ** 2) / 4) * identity
-for j in range(N - 1):
+for t in range(N - 1):
     for v in range(N - 1):
-        H_time += (A * (2 - (N - 1)) / 2) * Z(qubits[v][j])
+        H_time += (A * (2 - (N - 1)) / 2) * CreatePauliOperator(Z, v, t)
 
-for j in range(N - 1):
+for t in range(N - 1):
     for v in range(N - 1):
         for u in range(N - 1):
             if v != u:
-                H_time += (A / 4) * Z(qubits[v][j]) * Z(qubits[u][j])
+                H_time += (A / 4) * CreatePauliOperator(Z, v, t) * CreatePauliOperator(Z, u, t)
 
 # H_pen_TSP
 H_pen = 0
 for u, v in product(range(N - 1), repeat=2):
     if u != v and ((u + 1, v + 1) not in E and (v + 1, u + 1) not in E):
-        for j in range(N - 2):
+        for t in range(N - 2):
             H_pen += (A / 4) * (
-                Z(qubits[u][j]) * Z(qubits[v][(j + 1) % (N - 1)])
-                - Z(qubits[u][j])
-                - Z(qubits[v][(j + 1) % (N - 1)])
+                CreatePauliOperator(Z, u, t) * CreatePauliOperator(Z, v, (t + 1) % (N - 1))
+                - CreatePauliOperator(Z, u, t)
+                - CreatePauliOperator(Z, v, (t + 1) % (N - 1))
                 + identity
             )
 
@@ -70,8 +92,8 @@ H_pen_depot = 0
 for v in range(N - 1):
     if (0, v + 1) not in E and (v + 1, 0) not in E:
         H_pen_depot += (A / 2) * (
-            -Z(qubits[v][0])
-            - Z(qubits[v][N - 2])
+            -CreatePauliOperator(Z, v, 0)
+            - CreatePauliOperator(Z, v, N - 2)
             + 2 * identity
         )
 
@@ -79,18 +101,18 @@ for v in range(N - 1):
 H_weight = 0
 for (u, v) in E:
     if u != 0 and v != 0:
-        for j in range(N - 2):
+        for t in range(N - 2):
             Wuv = W[(u, v)]
             H_weight += (Wuv / 4) * (
-                Z(qubits[u - 1][j]) * Z(qubits[v - 1][(j + 1) % (N - 1)])
-                - Z(qubits[u - 1][j])
-                - Z(qubits[v - 1][(j + 1) % (N - 1)])
+                CreatePauliOperator(Z, u - 1, t) * CreatePauliOperator(Z, v - 1, (t + 1) % (N - 1))
+                - CreatePauliOperator(Z, u - 1, t)
+                - CreatePauliOperator(Z, v - 1, (t + 1) % (N - 1))
                 + identity
             )
             H_weight += (Wuv / 4) * (
-                Z(qubits[v - 1][j]) * Z(qubits[u - 1][(j + 1) % (N - 1)])
-                - Z(qubits[v - 1][j])
-                - Z(qubits[u - 1][(j + 1) % (N - 1)])
+                CreatePauliOperator(Z, v - 1, t) * CreatePauliOperator(Z, u - 1, (t + 1) % (N - 1))
+                - CreatePauliOperator(Z, v - 1, t)
+                - CreatePauliOperator(Z, u - 1, (t + 1) % (N - 1))
                 + identity
             )
 
@@ -100,8 +122,8 @@ for (u, v) in E:
     if u == 0:
         W0v = W[(0, v)]
         H_weight_depot += (W0v / 2) * (
-            -Z(qubits[v - 1][0])
-            - Z(qubits[v - 1][N - 2])
+            -CreatePauliOperator(Z, v - 1, 0)
+            - CreatePauliOperator(Z, v - 1, N - 2)
             + 2 * identity
         )
 
