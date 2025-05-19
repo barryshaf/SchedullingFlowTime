@@ -242,7 +242,7 @@ def plot_energies(energy_values, actual_min_eigenvalue=None):
   plt.grid()
   plt.show()
 
-def run_VQE(H_qub, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
+def run_VQE(H_qub, initial_thetas = None, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
   algorithm_globals.random_seed = seed #42
   random.seed(seed)
   np.random.seed(seed)
@@ -253,16 +253,16 @@ def run_VQE(H_qub, callback_func=store_energy, plot_func=plot_energies, maxiter=
   # Set up the VQE instance with COBYLA optimizer
   optimizer = COBYLA(maxiter=maxiter)
   estimator_obj = Estimator()  # Internal qiskit structure
-  vqe = VQE(ansatz=ansatz, optimizer=optimizer, estimator=estimator_obj, callback=callback_func)
+  vqe = VQE(ansatz=ansatz, optimizer=optimizer, estimator=estimator_obj, callback=callback_func, initial_point=initial_thetas)
 
   # Run the VQE algorithm
   result = vqe.compute_minimum_eigenvalue(H_qub)
   print("Ground state energy:", result.eigenvalue.real)
   print("Optimal parameters:", result.optimal_point)
   #print("Number of iterations:", result.optimizer_evals)
-
+  result.optimal_point
   plot_func()
-  return result.eigenvalue.real
+  return result #.eigenvalue.real
 #######
 
 #Visualize Path
@@ -326,5 +326,5 @@ def visualize_path_1d(coordinates, axis=None):
     plt.show()
 
 
-def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, maxiter: int = 500, seed: int = 42):
-    return run_VQE(H_qub, maxiter=maxiter, seed=seed, plot_func=lambda: plot_energies(energy_values, min_eigenvalue), callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
+def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42):
+    return run_VQE(H_qub, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=lambda: plot_energies(energy_values, min_eigenvalue), callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
