@@ -326,5 +326,6 @@ def visualize_path_1d(coordinates, axis=None):
     plt.show()
 
 
-def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42):
-    return run_VQE(H_qub, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=lambda: plot_energies(energy_values, min_eigenvalue), callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
+def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
+    plot_func = lambda: plot_energies(energy_values, min_eigenvalue) if verbose else lambda: None
+    return run_VQE(H_qub, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=plot_func, callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
