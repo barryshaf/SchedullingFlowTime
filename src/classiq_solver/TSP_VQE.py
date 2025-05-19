@@ -119,8 +119,8 @@ for (u, v) in E:
     if u == 0:
         W0v = W[(0, v)]
         H_weight_depot += (W0v / 2) * (
-            -Z(qubits[v - 1][0])
-            - Z(qubits[v - 1][N - 2])
+            -CreatePauliOperator(Z, v - 1, 0)
+            - CreatePauliOperator(Z, v - 1, N - 2)
             + 2 * identity
         )
 
