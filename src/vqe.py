@@ -242,12 +242,13 @@ def plot_energies(energy_values, actual_min_eigenvalue=None):
   plt.grid()
   plt.show()
 
-def run_VQE(H_qub, initial_thetas = None, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
+def run_VQE(H_qub, ansatz = None, initial_thetas = None, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
   algorithm_globals.random_seed = seed #42
   random.seed(seed)
   np.random.seed(seed)
 
-  ansatz = EfficientSU2(H_qub.num_qubits)
+  if ansatz == None:
+    ansatz = EfficientSU2(H_qub.num_qubits)
   #ansatz.decompose().draw("mpl", style="iqp")
 
   # Set up the VQE instance with COBYLA optimizer
@@ -260,7 +261,6 @@ def run_VQE(H_qub, initial_thetas = None, callback_func=store_energy, plot_func=
   print("Ground state energy:", result.eigenvalue.real)
   print("Optimal parameters:", result.optimal_point)
   #print("Number of iterations:", result.optimizer_evals)
-  result.optimal_point
   plot_func()
   return result #.eigenvalue.real
 #######
@@ -326,6 +326,6 @@ def visualize_path_1d(coordinates, axis=None):
     plt.show()
 
 
-def run_VQE_simple(H_qub, energy_values, theta_path, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
+def run_VQE_simple(H_qub, energy_values, theta_path, ansatz = None, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
     plot_func = lambda: plot_energies(energy_values, min_eigenvalue) if verbose else lambda: None
-    return run_VQE(H_qub, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=plot_func, callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
+    return run_VQE(H_qub, ansatz=ansatz, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=plot_func, callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))

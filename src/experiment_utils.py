@@ -437,3 +437,53 @@ def run_and_display_vqe_best_vs_random_shifted(landscape: TotalLandscapeResult, 
     ]
     plot_VQE_evals(best_vqe_runs + best_random_theta_vqe_runs)
     
+
+### MY MUB Utils - I.Ram 2025
+
+def gen_expressive_ansatz_2qubits() -> QuantumCircuit:
+    NUM_THETAS = 8
+    thetas = [Parameter(f"theta{i}") for i in range(NUM_THETAS)]
+    circ = QuantumCircuit(2)
+    circ.ry(thetas[0], 0)
+    circ.ry(thetas[1], 1)
+    circ.rz(thetas[2], 0)
+    circ.rz(thetas[3], 1)
+    circ.cx(0, 1)
+    circ.ry(thetas[4], 0)
+    circ.ry(thetas[5], 1)
+    circ.rz(thetas[6], 0)
+    circ.rz(thetas[7], 1)
+    return circ
+
+#####
+
+from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit import Parameter
+
+def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None):
+    #TODO - utilize permutation_mask to decide which are the MUB subset-qubits
+    assert num_qubits > MUB_size
+
+    if ansatz_template == None:
+        ansatz_template = EfficientSU2
+
+    ansatz1 = ansatz_template(num_qubits - MUB_size)
+
+    assert MUB_size == 2
+    ansatz2 = gen_expressive_ansatz_2qubits()
+
+    # new_params = []
+    # for param in ansatz2.parameters:
+    #     new_param = Parameter(f"{param.name}_ansatz2")  # Rename parameter
+    #     new_params.append(new_param)
+    #     ansatz2 = ansatz2.bind_parameters({param: new_param})  # Bind the new parameter to the circuit
+
+
+    # Create a new circuit with the total number of qubits
+    ansatz_combined = QuantumCircuit(num_qubits)
+
+    # Append the ansatz circuits
+    ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
+    ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
+
+    return ansatz_combined
