@@ -455,12 +455,65 @@ def gen_expressive_ansatz_2qubits() -> QuantumCircuit:
     circ.rz(thetas[7], 1)
     return circ
 
+def params_MUB_2q(state_idx, mub_idx):
+    # state_idx chooses the state in the basis (MUB)
+    # mub_idx chooses the basis (MUB) itself
+    if mub_idx == 0:
+        if state_idx == 0:
+            return [0, 0, 0, 0, 0, 0, 0, 0]
+        elif state_idx == 1:
+            return [0, 0, 0, 0, np.pi, 0, 0, 0]
+        elif state_idx == 2:
+            return [0, 0, 0, 0, 0, np.pi, 0, 0]
+        elif state_idx == 3:
+            return [0, 0, 0, 0, np.pi, np.pi, 0, 0]
+    if mub_idx == 1:
+        if state_idx == 0:
+            return [0, 0, 0, 0, np.pi / 2, np.pi / 2, 0, 0]
+        elif state_idx == 1:
+            return [0, -np.pi, 0, 0, np.pi / 2, np.pi / 2, 0, 0]
+        elif state_idx == 2:
+            return [np.pi, 0, 0, 0, np.pi / 2, np.pi / 2, 0, 0]
+        elif state_idx == 3:
+            return [np.pi, -np.pi, 0, 0, np.pi / 2, np.pi / 2, 0, 0]
+    elif mub_idx == 2:
+        if state_idx == 0:
+            return [np.pi / 2, -np.pi / 2, -np.pi/2, np.pi/2, 0, 0, 0, 0]
+        elif state_idx == 1:
+            return [-np.pi / 2, np.pi / 2, -np.pi/2, np.pi/2, 0, 0, 0, 0]
+        elif state_idx == 2:
+            return [np.pi / 2, np.pi / 2, -np.pi/2, np.pi/2, 0, 0, 0, 0]
+        elif state_idx == 3:
+            return [-np.pi / 2, -np.pi / 2, -np.pi/2, np.pi/2, 0, 0, 0, 0]
+    elif mub_idx == 3:
+        if state_idx == 0:
+            return [0, 0, np.pi/2, np.pi/2, np.pi/2, np.pi/2, -np.pi/2, -np.pi/2]
+        elif state_idx == 1:
+            return [0, 0, np.pi/2, np.pi/2, np.pi/2, -np.pi/2, -np.pi/2, -np.pi/2]
+        elif state_idx == 2:
+            return [0, 0, -np.pi/2, -np.pi/2, np.pi/2, np.pi/2, np.pi/2, np.pi/2]
+        elif state_idx == 3:
+            return [0, 0, -np.pi/2, -np.pi/2, np.pi/2, -np.pi/2, np.pi/2, np.pi/2]
+    elif mub_idx == 4:
+        if state_idx == 0:
+            return [np.pi/2, -np.pi/2, np.pi/2, np.pi/2, np.pi/2, np.pi/2, 0, 0]
+        elif state_idx == 1:
+            return [-np.pi/2, np.pi/2, -np.pi/2, np.pi/2, np.pi/2, np.pi/2, 0, 0]
+        elif state_idx == 2:
+            return [np.pi/2, -np.pi/2, -np.pi/2, -np.pi/2, np.pi/2, np.pi/2, 0, 0]
+        elif state_idx == 3:
+            return [np.pi/2, -np.pi/2, -np.pi/2, np.pi/2, np.pi/2, np.pi/2, 0, 0]
+
 #####
 
 from qiskit.circuit.library import EfficientSU2
 from qiskit.circuit import Parameter
 
 def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None):
+    ansatz_combined, _ = get_mub_ansatz_and_thetas(num_qubits, ansatz_template, MUB_size, permutation_mask)
+    return ansatz_combined
+
+def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None, state_idx=0, mub_idx=0):
     #TODO - utilize permutation_mask to decide which are the MUB subset-qubits
     assert num_qubits > MUB_size
 
@@ -478,6 +531,11 @@ def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation
     #     new_params.append(new_param)
     #     ansatz2 = ansatz2.bind_parameters({param: new_param})  # Bind the new parameter to the circuit
 
+    initial_values_ansatz1 = np.random.rand(len(ansatz1.parameters))  # Random initial values for ansatz1 TODO- can change to not be random
+    initial_values_ansatz2 = params_MUB_2q(state_idx, mub_idx)  # Random initial values for ansatz2
+
+    # Combine initial values
+    initial_thetas = np.concatenate((initial_values_ansatz1, initial_values_ansatz2))
 
     # Create a new circuit with the total number of qubits
     ansatz_combined = QuantumCircuit(num_qubits)
@@ -486,4 +544,11 @@ def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation
     ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
     ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
 
-    return ansatz_combined
+    return ansatz_combined, initial_thetas
+
+from vqe import run_VQE_simple
+
+def run_VQE_MUB(H, min_eigenvalue, energy_values = [], theta_path = [], state_index=0, mub_idx=0):
+    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(8, state_idx=state_index, mub_idx=mub_idx)
+    vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=42)
+    return vqe_result

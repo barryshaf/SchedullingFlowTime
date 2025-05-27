@@ -248,6 +248,7 @@ def run_VQE(H_qub, ansatz = None, initial_thetas = None, callback_func=store_ene
   np.random.seed(seed)
 
   if ansatz == None:
+    print("No Ansatz Given, assuming EfficientSU2")
     ansatz = EfficientSU2(H_qub.num_qubits)
   #ansatz.decompose().draw("mpl", style="iqp")
 
