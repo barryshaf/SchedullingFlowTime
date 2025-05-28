@@ -598,3 +598,18 @@ def run_VQE_MUB_for_all_choose_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state
     
     print(f"===== TOTAL SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
     return n_correct, n
+
+
+def run_VQE_stats(H, min_eigenvalue, N = 10, maxiter = 1000):
+    n_correct = 0
+    for n in range(N):
+        seed = 42 + n
+        print(f"ITERATION {n} - seed = {seed}")
+        result = run_VQE_simple(H, min_eigenvalue=min_eigenvalue, energy_values=[], theta_path=[], seed=seed, maxiter=1000)
+
+        if abs(result.optimal_value - min_eigenvalue) < 3:
+            n_correct += 1
+            print("FOUND GLOBAL MINIMUM")
+    
+    print(f"===== SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{N}={n_correct / N * 100}%")
+    return n_correct, N
