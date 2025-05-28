@@ -558,14 +558,14 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
 
 from vqe import run_VQE_simple
 
-def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0):
-    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx)
+def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0, MUB_mask = None):
+    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx, MUB_mask = MUB_mask)
     vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=42)
     return vqe_result
 
 import itertools
 
-def run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list = None):
+def run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list = None, MUB_mask = None):
     if mub_and_state_idx_list == None:
         mub_and_state_idx_list = list(itertools.product(range(5), range(4)))
     
@@ -573,7 +573,7 @@ def run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_li
     n_correct = 0
     for mub_idx, state_idx in mub_and_state_idx_list:
         print(f"ITERATION {n} === MUB VQE STATE (mub_idx={mub_idx}, state_idx={state_idx})")
-        result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx)
+        result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx, MUB_mask=MUB_mask)
         if abs(result.optimal_value - min_eigenvalue) < 3:
             n_correct += 1
             print("FOUND GLOBAL MINIMUM")
@@ -588,7 +588,7 @@ def run_VQE_MUB_for_all_choose_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state
     
     for MUB_mask in generate_all_subsets(2, H.num_qubits):
         print(f"ITERATION {n} === MUB VQE STATE on {MUB_mask}")
-        n_correct_mub, n_mub = run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list=mub_and_state_idx_list)
+        n_correct_mub, n_mub = run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list=mub_and_state_idx_list, MUB_mask=MUB_mask)
         n += n_mub
         n_correct += n_correct_mub
 
