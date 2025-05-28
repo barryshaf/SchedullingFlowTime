@@ -509,12 +509,12 @@ def params_MUB_2q(state_idx, mub_idx):
 from qiskit.circuit.library import EfficientSU2
 from qiskit.circuit import Parameter
 
-def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None):
-    ansatz_combined, _ = get_mub_ansatz_and_thetas(num_qubits, ansatz_template, MUB_size, permutation_mask)
+def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None):
+    ansatz_combined, _ = get_mub_ansatz_and_thetas(num_qubits, ansatz_template, MUB_size, MUB_mask)
     return ansatz_combined
 
-def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None, state_idx=0, mub_idx=0):
-    #TODO - utilize permutation_mask to decide which are the MUB subset-qubits
+def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
+    #TODO - utilize MUB_mask to decide which are the MUB subset-qubits
     assert num_qubits >= MUB_size
 
     if ansatz_template == None:
@@ -528,9 +528,14 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
     # Create a new circuit with the total number of qubits
     ansatz_combined = QuantumCircuit(num_qubits)
 
-    # Append the ansatz circuits
-    ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
-    ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
+    if MUB_mask == None:
+        # Append the ansatz circuits
+        ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
+        ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
+    else: #I know who to put MUB on:
+        the_rest_qubits = [index for index in range(num_qubits) if index not in MUB_mask]
+        ansatz_combined.append(ansatz1, the_rest_qubits)
+        ansatz_combined.append(ansatz2, MUB_mask)
 
     
     ### Decide Thetas
@@ -553,7 +558,7 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
 
 from vqe import run_VQE_simple
 
-def run_VQE_MUB(H, min_eigenvalue, energy_values = [], theta_path = [], state_index=0, mub_idx=0):
-    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(8, state_idx=state_index, mub_idx=mub_idx)
+def run_VQE_MUB(H, min_eigenvalue, energy_values = [], theta_path = [], state_idx=0, mub_idx=0):
+    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx)
     vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=42)
     return vqe_result
