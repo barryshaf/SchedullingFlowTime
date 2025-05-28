@@ -242,6 +242,9 @@ def plot_energies(energy_values, actual_min_eigenvalue=None):
   plt.grid()
   plt.show()
 
+def parameter_dict_to_list(parameter_dict, ansatz):
+    return [parameter_dict[param] for param in ansatz.parameters]
+
 def run_VQE(H_qub, ansatz = None, initial_thetas = None, callback_func=store_energy, plot_func=plot_energies, maxiter=500, seed=42):
   algorithm_globals.random_seed = seed #42
   random.seed(seed)
@@ -250,7 +253,9 @@ def run_VQE(H_qub, ansatz = None, initial_thetas = None, callback_func=store_ene
   if ansatz == None:
     print("No Ansatz Given, assuming EfficientSU2")
     ansatz = EfficientSU2(H_qub.num_qubits)
-  #ansatz.decompose().draw("mpl", style="iqp")
+  
+  if type(initial_thetas) == dict:
+      initial_thetas = parameter_dict_to_list(initial_thetas, ansatz)
 
   # Set up the VQE instance with COBYLA optimizer
   optimizer = COBYLA(maxiter=maxiter)
@@ -327,6 +332,6 @@ def visualize_path_1d(coordinates, axis=None):
     plt.show()
 
 
-def run_VQE_simple(H_qub, energy_values, theta_path, ansatz = None, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
+def run_VQE_simple(H_qub, energy_values = [], theta_path = [], ansatz = None, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
     plot_func = lambda: plot_energies(energy_values, min_eigenvalue) if verbose else lambda: None
     return run_VQE(H_qub, ansatz=ansatz, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=plot_func, callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))

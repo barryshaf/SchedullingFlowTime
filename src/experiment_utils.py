@@ -515,7 +515,7 @@ def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, permutation
 
 def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, permutation_mask = None, state_idx=0, mub_idx=0):
     #TODO - utilize permutation_mask to decide which are the MUB subset-qubits
-    assert num_qubits > MUB_size
+    assert num_qubits >= MUB_size
 
     if ansatz_template == None:
         ansatz_template = EfficientSU2
@@ -525,24 +525,29 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
     assert MUB_size == 2
     ansatz2 = gen_expressive_ansatz_2qubits()
 
-    # new_params = []
-    # for param in ansatz2.parameters:
-    #     new_param = Parameter(f"{param.name}_ansatz2")  # Rename parameter
-    #     new_params.append(new_param)
-    #     ansatz2 = ansatz2.bind_parameters({param: new_param})  # Bind the new parameter to the circuit
-
-    initial_values_ansatz1 = np.random.rand(len(ansatz1.parameters))  # Random initial values for ansatz1 TODO- can change to not be random
-    initial_values_ansatz2 = params_MUB_2q(state_idx, mub_idx)  # Random initial values for ansatz2
-
-    # Combine initial values
-    initial_thetas = np.concatenate((initial_values_ansatz1, initial_values_ansatz2))
-
     # Create a new circuit with the total number of qubits
     ansatz_combined = QuantumCircuit(num_qubits)
 
     # Append the ansatz circuits
     ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
     ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
+
+    
+    ### Decide Thetas
+    initial_values_ansatz1 = np.random.rand(len(ansatz1.parameters))  # Random initial values for ansatz1 TODO- can change to not be random
+    initial_values_ansatz2 = params_MUB_2q(state_idx, mub_idx)  # Random initial values for ansatz2
+
+    initial_thetas = {}
+
+    # Populate the dictionary with parameters from ansatz1
+    for param, value in zip(ansatz1.parameters, initial_values_ansatz1):
+        initial_thetas[param] = value
+
+    # Populate the dictionary with parameters from ansatz2
+    for param, value in zip(ansatz2.parameters, initial_values_ansatz2):
+        initial_thetas[param] = value
+    
+    ###
 
     return ansatz_combined, initial_thetas
 
