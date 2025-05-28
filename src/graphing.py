@@ -29,6 +29,7 @@ def display_energy_landscape(energy_landscape_results: TotalLandscapeResult, gra
     for i, mub_res in enumerate(energy_landscape_results.mub_results):
         for j, subset_res in enumerate(mub_res):
             energies_only = [result.value for result in subset_res]
+            #print(energies_only)
             # For plots with full MUBs (no different subsets in each basis), have a distinct color for each basis.
             # For plots with partial MUBs (several subsets in each basis), keep distinct bases 
             state_color = f"C{i}" if len(mub_res) == 1 else f"C{j}"
