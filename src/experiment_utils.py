@@ -558,7 +558,43 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
 
 from vqe import run_VQE_simple
 
-def run_VQE_MUB(H, min_eigenvalue, energy_values = [], theta_path = [], state_idx=0, mub_idx=0):
+def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0):
     mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx)
     vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=42)
     return vqe_result
+
+import itertools
+
+def run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list = None):
+    if mub_and_state_idx_list == None:
+        mub_and_state_idx_list = list(itertools.product(range(5), range(4)))
+    
+    n = 0
+    n_correct = 0
+    for mub_idx, state_idx in mub_and_state_idx_list:
+        print(f"ITERATION {n} === MUB VQE STATE (mub_idx={mub_idx}, state_idx={state_idx})")
+        result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx)
+        if abs(result.optimal_value - min_eigenvalue) < 3:
+            n_correct += 1
+            print("FOUND GLOBAL MINIMUM")
+        n += 1
+    
+    print(f"===== SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
+    return n_correct, n
+
+def run_VQE_MUB_for_all_choose_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state_idx_list = None):
+    n = 0
+    n_correct = 0
+    
+    for MUB_mask in generate_all_subsets(2, H.num_qubits):
+        print(f"ITERATION {n} === MUB VQE STATE on {MUB_mask}")
+        n_correct_mub, n_mub = run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list=mub_and_state_idx_list)
+        n += n_mub
+        n_correct += n_correct_mub
+
+        if n > MAX_ITER:
+            break
+    
+    
+    print(f"===== TOTAL SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
+    return n_correct, n
