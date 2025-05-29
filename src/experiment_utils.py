@@ -565,40 +565,56 @@ def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_i
 
 import itertools
 
-def run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list = None, MUB_mask = None):
-    if mub_and_state_idx_list == None:
-        mub_and_state_idx_list = list(itertools.product(range(5), range(4)))
+def run_VQE_MUB_on_subset(H, min_eigenvalue, mub_state_mask_list = None, MAX_ITER=100):
+    if mub_state_mask_list == None:
+        mub_state_mask_list = list(itertools.product(range(5), range(4), generate_all_subsets(2, H.num_qubits)))
     
     n = 0
     n_correct = 0
-    for mub_idx, state_idx in mub_and_state_idx_list:
-        print(f"ITERATION {n} === MUB VQE STATE (mub_idx={mub_idx}, state_idx={state_idx})")
+    for mub_idx, state_idx, MUB_mask in mub_state_mask_list:
+        print(f"ITERATION {n} === MUB VQE STATE (mub_idx={mub_idx}, state_idx={state_idx}, MUB_mask={MUB_mask})")
         result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx, MUB_mask=MUB_mask)
         if abs(result.optimal_value - min_eigenvalue) < 3:
             n_correct += 1
             print("FOUND GLOBAL MINIMUM")
         n += 1
-    
-    print(f"===== SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
-    return n_correct, n
-
-def run_VQE_MUB_for_all_choose_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state_idx_list = None):
-    n = 0
-    n_correct = 0
-    
-    for MUB_mask in generate_all_subsets(2, H.num_qubits):
-        print(f"ITERATION {n} === MUB VQE STATE on {MUB_mask}")
-        n_correct_mub, n_mub = run_VQE_MUB_for_all_mubs_on_first_2q(H, min_eigenvalue, mub_and_state_idx_list=mub_and_state_idx_list, MUB_mask=MUB_mask)
-        n += n_mub
-        n_correct += n_correct_mub
 
         if n > MAX_ITER:
             break
     
-    
-    print(f"===== TOTAL SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
+    print(f"===== SUCCESS RATE FOR GLOBAL MINIMUM {n_correct}/{n}={n_correct / n * 100}%")
     return n_correct, n
 
+def run_VQE_MUB_for_all_mubs_on_one_pair_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state_idx_list = None, MUB_mask = None):
+    if mub_and_state_idx_list == None:
+        mub_and_state_idx_list = list(itertools.product(range(5), range(4)))
+    
+    mub_list = [(a[0], a[1], b) for a, b in list(itertools.product(mub_and_state_idx_list, [MUB_mask]))]
+    return run_VQE_MUB_on_subset(H, min_eigenvalue, mub_list, MAX_ITER)
+
+def run_VQE_MUB_for_all_choose_2q(H, min_eigenvalue, MAX_ITER=100, mub_and_state_idx_list = None):
+    if mub_and_state_idx_list == None:
+        mub_and_state_idx_list = list(itertools.product(range(5), range(4)))
+    
+    mub_list = [(a[0], a[1], b) for a, b in list(itertools.product(mub_and_state_idx_list, generate_all_subsets(2, H.num_qubits)))]
+    return run_VQE_MUB_on_subset(H, min_eigenvalue, mub_list, MAX_ITER)
+
+import random
+
+def run_VQE_MUB_random(H, min_eigenvalue, MAX_ITER=100):
+    elements = set()  # Use a set to avoid repetitions
+
+    while len(elements) < MAX_ITER:
+        a = random.randint(0, 4)  # a is between 0 and 4
+        b = random.randint(0, 3)  # b is between 0 and 3
+        c = random.randint(0, H.num_qubits - 1)  # Get two unique numbers between 1 and H.num_qubits
+        d = random.randint(0, c - 1)
+        
+        elements.add((a, b, (d, c)))  # Add the tuple to the set
+    
+    mub_list = list(elements)
+    #print(mub_list)
+    return run_VQE_MUB_on_subset(H, min_eigenvalue, mub_list, MAX_ITER)
 
 def run_VQE_stats(H, min_eigenvalue, N = 10, maxiter = 1000):
     n_correct = 0
