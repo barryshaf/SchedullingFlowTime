@@ -607,10 +607,10 @@ def run_VQE_MUB_random(H, min_eigenvalue, MAX_ITER=100):
     while len(elements) < MAX_ITER:
         a = random.randint(0, 4)  # a is between 0 and 4
         b = random.randint(0, 3)  # b is between 0 and 3
-        c = random.randint(0, H.num_qubits - 1)  # Get two unique numbers between 1 and H.num_qubits
-        d = random.randint(0, c - 1)
+        d = random.randint(1, H.num_qubits - 1)  # Get two unique numbers between 1 and H.num_qubits
+        c = random.randint(0, d - 1)
         
-        elements.add((a, b, (d, c)))  # Add the tuple to the set
+        elements.add((a, b, (c, d)))  # Add the tuple to the set
     
     mub_list = list(elements)
     #print(mub_list)
