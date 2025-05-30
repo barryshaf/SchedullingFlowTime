@@ -6,7 +6,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import QuantumCircuit
 import numpy as np
 
-from hamiltonians import get_exact_ground
+#from hamiltonians import get_exact_ground <--- this causes problems?
 from mub_state_gen import generate_all_subsets
 from landscape import (
     calculate_energy_landscape,
@@ -513,6 +513,7 @@ def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = 
     ansatz_combined, _ = get_mub_ansatz_and_thetas(num_qubits, ansatz_template, MUB_size, MUB_mask)
     return ansatz_combined
 
+#If you want the MUB and the ansatz split and in parallel
 def get_mub_ansatz_and_thetas_split(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
     assert num_qubits >= MUB_size
 
@@ -554,6 +555,46 @@ def get_mub_ansatz_and_thetas_split(num_qubits, ansatz_template = None, MUB_size
 
     return ansatz_combined, initial_thetas
 
+#If you want the MUB first, unparameterized, and the normal ansatz later
+def get_mub_ansatz_and_thetas_shifted_mubs(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
+    assert num_qubits >= MUB_size
+
+    if ansatz_template == None:
+        ansatz_template = EfficientSU2
+
+    ansatz1 = ansatz_template(num_qubits)
+
+    assert MUB_size == 2
+    ansatz2 = gen_expressive_ansatz_2qubits()
+
+    ansatz2.assign_parameters(params_MUB_2q(state_idx, mub_idx), inplace=True)
+
+    # Create a new circuit with the total number of qubits
+    ansatz_combined = QuantumCircuit(num_qubits)
+
+    if MUB_mask == None:
+        MUB_mask = [0, 1]
+    
+    #I know who to put MUB on:
+    #Apply MUB and then the original ansatz
+    ansatz_combined.compose(ansatz2, MUB_mask, inplace=True)
+    ansatz_combined.compose(ansatz1, range(num_qubits), inplace=True)
+
+    
+    ### Decide Thetas
+    initial_values_ansatz1 = np.random.rand(len(ansatz1.parameters))
+
+    initial_thetas = {}
+
+    # Populate the dictionary with parameters from ansatz1
+    for param, value in zip(ansatz1.parameters, initial_values_ansatz1):
+        initial_thetas[param] = value
+    
+    ###
+
+    return ansatz_combined, initial_thetas
+
+#If you want the MUB first (parameterized) and the ansatz later
 def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
     assert num_qubits >= MUB_size
 
@@ -599,7 +640,8 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
 from vqe import run_VQE_simple
 
 def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0, MUB_mask = None, seed=42):
-    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx, MUB_mask = MUB_mask)
+    print("--SHIFTED MUBs")
+    mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas_shifted_mubs(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx, MUB_mask = MUB_mask)
     vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=seed, verbose=False)
     return vqe_result
 
