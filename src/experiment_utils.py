@@ -513,8 +513,7 @@ def get_mub_ansatz(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = 
     ansatz_combined, _ = get_mub_ansatz_and_thetas(num_qubits, ansatz_template, MUB_size, MUB_mask)
     return ansatz_combined
 
-def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
-    #TODO - utilize MUB_mask to decide which are the MUB subset-qubits
+def get_mub_ansatz_and_thetas_split(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
     assert num_qubits >= MUB_size
 
     if ansatz_template == None:
@@ -529,13 +528,12 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
     ansatz_combined = QuantumCircuit(num_qubits)
 
     if MUB_mask == None:
-        # Append the ansatz circuits
-        ansatz_combined.append(ansatz1, range(num_qubits - MUB_size))  # Append ansatz1 to the first N qubits
-        ansatz_combined.append(ansatz2, range(num_qubits - MUB_size, num_qubits)) #Append ansatz2 to the rest of the qubits
-    else: #I know who to put MUB on:
-        the_rest_qubits = [index for index in range(num_qubits) if index not in MUB_mask]
-        ansatz_combined.append(ansatz1, the_rest_qubits)
-        ansatz_combined.append(ansatz2, MUB_mask)
+        MUB_mask = [0, 1]
+    
+    #I know who to put MUB on:
+    the_rest_qubits = [index for index in range(num_qubits) if index not in MUB_mask]
+    ansatz_combined.append(ansatz1, the_rest_qubits)
+    ansatz_combined.append(ansatz2, MUB_mask)
 
     
     ### Decide Thetas
@@ -556,16 +554,58 @@ def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, 
 
     return ansatz_combined, initial_thetas
 
+def get_mub_ansatz_and_thetas(num_qubits, ansatz_template = None, MUB_size = 2, MUB_mask = None, state_idx=0, mub_idx=0):
+    assert num_qubits >= MUB_size
+
+    if ansatz_template == None:
+        ansatz_template = EfficientSU2
+
+    ansatz1 = ansatz_template(num_qubits)
+
+    assert MUB_size == 2
+    ansatz2 = gen_expressive_ansatz_2qubits()
+
+    # Create a new circuit with the total number of qubits
+    ansatz_combined = QuantumCircuit(num_qubits)
+
+    if MUB_mask == None:
+        MUB_mask = [0, 1]
+    
+    #I know who to put MUB on:
+    #Apply MUB and then the original ansatz
+    ansatz_combined.compose(ansatz2, MUB_mask, inplace=True)
+    ansatz_combined.compose(ansatz1, range(num_qubits), inplace=True)
+
+    
+    ### Decide Thetas
+    initial_values_ansatz1 = np.random.rand(len(ansatz1.parameters))  # Random initial values for ansatz1 TODO- can change to not be random
+    initial_values_ansatz2 = params_MUB_2q(state_idx, mub_idx)  # Random initial values for ansatz2
+
+    initial_thetas = {}
+
+    # Populate the dictionary with parameters from ansatz1
+    for param, value in zip(ansatz1.parameters, initial_values_ansatz1):
+        initial_thetas[param] = value
+
+    # Populate the dictionary with parameters from ansatz2
+    for param, value in zip(ansatz2.parameters, initial_values_ansatz2):
+        initial_thetas[param] = value
+    
+    ###
+
+    return ansatz_combined, initial_thetas
+
+
 from vqe import run_VQE_simple
 
-def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0, MUB_mask = None):
+def run_VQE_MUB(H, min_eigenvalue, energy_values, theta_path, state_idx=0, mub_idx=0, MUB_mask = None, seed=42):
     mub_ansatz, initial_thetas = get_mub_ansatz_and_thetas(H.num_qubits, state_idx=state_idx, mub_idx=mub_idx, MUB_mask = MUB_mask)
-    vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=42)
+    vqe_result = run_VQE_simple(H, energy_values, theta_path, initial_thetas=initial_thetas ,min_eigenvalue=min_eigenvalue, ansatz=mub_ansatz, maxiter=1000, seed=seed, verbose=False)
     return vqe_result
 
 import itertools
 
-def run_VQE_MUB_on_subset(H, min_eigenvalue, mub_state_mask_list = None, MAX_ITER=100):
+def run_VQE_MUB_on_subset(H, min_eigenvalue, mub_state_mask_list = None, MAX_ITER=100, THRESHOLD=10, seed=42):
     if mub_state_mask_list == None:
         mub_state_mask_list = list(itertools.product(range(5), range(4), generate_all_subsets(2, H.num_qubits)))
     
@@ -573,8 +613,8 @@ def run_VQE_MUB_on_subset(H, min_eigenvalue, mub_state_mask_list = None, MAX_ITE
     n_correct = 0
     for mub_idx, state_idx, MUB_mask in mub_state_mask_list:
         print(f"ITERATION {n} === MUB VQE STATE (mub_idx={mub_idx}, state_idx={state_idx}, MUB_mask={MUB_mask})")
-        result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx, MUB_mask=MUB_mask)
-        if abs(result.optimal_value - min_eigenvalue) < 3:
+        result = run_VQE_MUB(H, min_eigenvalue, energy_values=[], theta_path=[], state_idx=state_idx, mub_idx=mub_idx, MUB_mask=MUB_mask, seed=seed)
+        if abs(result.optimal_value - min_eigenvalue) < THRESHOLD:
             n_correct += 1
             print("FOUND GLOBAL MINIMUM")
         n += 1
@@ -616,14 +656,14 @@ def run_VQE_MUB_random(H, min_eigenvalue, MAX_ITER=100):
     #print(mub_list)
     return run_VQE_MUB_on_subset(H, min_eigenvalue, mub_list, MAX_ITER)
 
-def run_VQE_stats(H, min_eigenvalue, N = 10, maxiter = 1000):
+def run_VQE_stats(H, min_eigenvalue, N = 10, maxiter = 1000, THRESHOLD=10):
     n_correct = 0
     for n in range(N):
         seed = 42 + n
         print(f"ITERATION {n} - seed = {seed}")
-        result = run_VQE_simple(H, min_eigenvalue=min_eigenvalue, energy_values=[], theta_path=[], seed=seed, maxiter=1000)
+        result = run_VQE_simple(H, min_eigenvalue=min_eigenvalue, energy_values=[], theta_path=[], seed=seed, maxiter=maxiter)
 
-        if abs(result.optimal_value - min_eigenvalue) < 3:
+        if abs(result.optimal_value - min_eigenvalue) < THRESHOLD:
             n_correct += 1
             print("FOUND GLOBAL MINIMUM")
     

@@ -335,3 +335,58 @@ def visualize_path_1d(coordinates, axis=None):
 def run_VQE_simple(H_qub, energy_values = [], theta_path = [], ansatz = None, min_eigenvalue=None, initial_thetas=None, maxiter: int = 500, seed: int = 42, verbose=True):
     plot_func = lambda: plot_energies(energy_values, min_eigenvalue) if verbose else lambda: None
     return run_VQE(H_qub, ansatz=ansatz, maxiter=maxiter, seed=seed, initial_thetas=initial_thetas, plot_func=plot_func, callback_func= lambda a,b,c,d: store_energy(energy_values, theta_path, a,b,c,d))
+
+
+#VQE-LA implementation:
+
+#TODO: check if this recreates the normal COBYLA VQE
+def my_VQE(your_energy_function, initial_thetas, maxiter=100):
+    # Define the optimizer
+    optimizer = COBYLA(maxiter=maxiter)
+
+    # Custom optimization loop
+    num_params = len(initial_thetas)
+    for i in range(num_params):
+        # Create a copy of the initial parameters
+        current_params = initial_thetas.copy()
+        
+        # Optimize only the i-th parameter
+        def objective_function(param):
+            current_params[i] = param
+            return your_energy_function(current_params)  # Define this function based on your problem
+
+        # Optimize the current parameter
+        optimized_param = optimizer.optimize(num_vars=1, objective_function=objective_function)
+        
+        # Update the initial_thetas with the optimized parameter
+        initial_thetas[i] = optimized_param[0]
+
+    # After the loop, initial_thetas will have the optimized parameters
+    return initial_thetas
+
+def my_VQE_2(your_energy_function, initial_thetas, maxiter=100):
+    # Define the optimizer
+    optimizer = COBYLA(maxiter=1)
+    # List to store the comparisons made by the optimizer
+    comparisons = []
+
+    # Objective function that takes all parameters
+    def objective_function(params):
+        # Store the current parameters for comparison
+        comparisons.append(params.copy())
+        return your_energy_function(params)  # Define this function based on your problem
+
+    # Optimization loop for maxiter iterations
+    for iteration in range(maxiter):
+        # Optimize all parameters for one iteration
+        optimized_params = optimizer.optimize(num_vars=len(initial_thetas), 
+                                            objective_function=objective_function, 
+                                            initial_point=initial_thetas)
+        
+        # Update initial_thetas with the optimized parameters
+        initial_thetas = optimized_params[0]
+
+    # Print the comparisons made during the optimization
+    print("Comparisons made during optimization:")
+    for i, comparison in enumerate(comparisons):
+        print(f"Iteration {i + 1}: {comparison}")
