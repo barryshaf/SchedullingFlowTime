@@ -703,7 +703,7 @@ def run_VQE_stats(H, min_eigenvalue, N = 10, maxiter = 1000, THRESHOLD=10):
     for n in range(N):
         seed = 42 + n
         print(f"ITERATION {n} - seed = {seed}")
-        result = run_VQE_simple(H, min_eigenvalue=min_eigenvalue, energy_values=[], theta_path=[], seed=seed, maxiter=maxiter)
+        result = run_VQE_simple(H, min_eigenvalue=min_eigenvalue, energy_values=[], theta_path=[], seed=seed, maxiter=maxiter, verbose=False)
 
         if abs(result.optimal_value - min_eigenvalue) < THRESHOLD:
             n_correct += 1
