@@ -23,11 +23,14 @@ This project explores the **Flowtime Job Shop Scheduling Problem (JSP)** in the 
 ### QUBO / Hamiltonian
 - Encode scheduling decisions in binary variables.
 - Write objective and constraints as quadratic forms; square any potentially negative term to ensure non-negativity.
-- Combine all terms into a single Hamiltonian  
-  \[
-  H_{\text{total}} = \alpha_0\,H_{\text{obj}} + \sum_k \alpha_k\,H_k^{(\text{constraint})},
-  \]
-  where \(\alpha_k\) are coefficients controlling constraint strength.
+- Total Hamiltonian
+We combine the objective and all constraint penalties into a single Hamiltonian:
+
+$$
+H_{\text{total}} \=\ \lambda_{0}\, H_{\text{obj}} \+\ \sum_{k=1}^{K} \lambda_{k}\, H_{k}^{\text{(constraint)}},
+$$
+
+where each $(\lambda_{k} > 0\)$ controls the strength of the \(k\)-th constraint penalty relative to the objective term $\(H_{\text{obj}}\).h \(\lambda_{k} > 0\)$ controls the strength of the \(k\)-th constraint penalty relative to the objective term $\(H_{\text{obj}}\)$.
 
 ### Ising Mapping
 - Map binary variables to spin variables via the standard \(\{0,1\}\leftrightarrow\{-1,+1\}\) transformation.
